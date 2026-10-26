@@ -156,6 +156,32 @@ export default async function handler(req: any, res: any) {
         message: body.message.trim(), createdAt: Date.now(), delivery: 'stored',
       };
       await mutate('portfolio/messages.json', [], messages => [entry, ...messages].slice(0, 200));
+      // EmailJS is primary; only an explicit rejection allows the backup.
+      // A timeout is ambiguous and must not trigger a second email.
+      try {
+        const primary = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(15000),
+          body: JSON.stringify({
+            service_id: 'service_1pmq0ww', template_id: 'template_974d8ci',
+            user_id: 'yh5YjFrvOYntRlo2T',
+            template_params: {
+              name: entry.senderName, email: email || 'vophuonganh054@gmail.com',
+              message: entry.message, title: 'Thư bồ câu từ MY WORLD',
+              time: new Date(entry.createdAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+            },
+          }),
+        });
+        if (primary.ok) return res.json({ success: true, delivery: 'submitted', provider: 'emailjs', id: entry.id });
+        const reason = (await primary.text()).slice(0, 240);
+        // 5xx responses may have been processed: keep the archived letter instead.
+        if (primary.status >= 500) return res.status(502).json({ success: false, saved: true,
+          error: 'Thư đã lưu. Dịch vụ email chưa xác nhận kết quả; vui lòng kiểm tra hộp thư trước khi gửi lại.' });
+        console.warn('Pigeon: EmailJS rejected request', primary.status, reason);
+      } catch {
+        return res.status(502).json({ success: false, saved: true,
+          error: 'Thư đã lưu. Chưa nhận được xác nhận từ dịch vụ email; vui lòng kiểm tra hộp thư trước khi gửi lại để tránh trùng thư.' });
+      }
       try {
         const delivery = await fetch('https://formsubmit.co/ajax/vophuonganh054@gmail.com', {
           method: 'POST',
@@ -175,7 +201,7 @@ export default async function handler(req: any, res: any) {
             error: activation ? 'Thư đã lưu. Chủ web cần mở email FormSubmit và bấm Activate Form cho link myworld-sunny.vercel.app.'
               : 'Thư đã lưu trong hộp thư của web, nhưng dịch vụ chuyển tới Gmail chưa nhận thư. Bạn có thể dùng nút gửi bằng ứng dụng email bên dưới.' });
         }
-        return res.json({ success: true, delivery: 'submitted', id: entry.id });
+        return res.json({ success: true, delivery: 'submitted', provider: 'formsubmit', id: entry.id });
       } catch {
         console.warn('Pigeon: message archived; email service unavailable');
         return res.status(502).json({ success: false, saved: true, id: entry.id,
