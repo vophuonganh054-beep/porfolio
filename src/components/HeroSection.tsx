@@ -23,42 +23,41 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
   const { language, isVi } = useLanguage();
   const t = TRANSLATIONS[language].hero;
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [avatarSrc, setAvatarSrc] = useState<string>(AVATAR_URL);
+  const [avatarSrc, setAvatarSrc] = useState<string>('');
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const avatarRevision = useRef(0);
   const [avatarNotice, setAvatarNotice] = useState<string | null>(null);
   const [isSavingServer, setIsSavingServer] = useState(false);
   const [showUrlDialog, setShowUrlDialog] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState('');
 
-  // Tải ảnh mới nhất từ máy chủ để bất kỳ ai mở link cũng thấy ảnh mới của bạn
+  // Wait for the current server URL before rendering any avatar.
   useEffect(() => {
-    let isMounted = true;
-    fetchPortfolioState().then((state) => {
-      if (isMounted && 'avatarUrl' in state) {
-        setAvatarSrc(state.avatarUrl || AVATAR_URL);
-        try {
-          localStorage.setItem(AVATAR_STORAGE_KEY, state.avatarUrl || AVATAR_URL);
-        } catch {
-          // ignore
-        }
-      }
-    });
-
-    const interval = setInterval(() => {
-      fetchPortfolioState().then((state) => {
-        if (isMounted && 'avatarUrl' in state) {
+    let active = true;
+    let pending = false;
+    try { localStorage.removeItem(AVATAR_STORAGE_KEY); } catch {}
+    const refresh = async () => {
+      if (pending) return;
+      pending = true;
+      const revision = avatarRevision.current;
+      try {
+        const state = await fetchPortfolioState();
+        if (!active || revision !== avatarRevision.current) return;
+        if ('avatarUrl' in state) {
+          setAvatarLoadFailed(false);
           setAvatarSrc(state.avatarUrl || AVATAR_URL);
-          try {
-            localStorage.setItem(AVATAR_STORAGE_KEY, state.avatarUrl || AVATAR_URL);
-          } catch {
-            // ignore
-          }
+        } else {
+          setAvatarLoadFailed(true);
         }
-      }).catch(() => {});
-    }, 15000);
-
+      } finally { pending = false; }
+    };
+    void refresh();
+    const timer = window.setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
     return () => {
-      isMounted = false;
-      clearInterval(interval);
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
     };
   }, []);
 
@@ -76,6 +75,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
       return;
     }
 
+    avatarRevision.current++;
     setIsSavingServer(true);
     setAvatarNotice('Đang tối ưu và lưu ảnh lên máy chủ... ⏳');
 
@@ -85,6 +85,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
       const res = await saveServerAvatar(compressedBase64);
       setIsSavingServer(false);
       if (res.success && res.avatarUrl) {
+        avatarRevision.current++;
         setAvatarSrc(res.avatarUrl);
         try {
           localStorage.setItem(AVATAR_STORAGE_KEY, res.avatarUrl);
@@ -122,6 +123,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
     const cleanUrl = customUrlInput.trim();
     if (!cleanUrl) return;
 
+    avatarRevision.current++;
     setIsSavingServer(true);
     setAvatarNotice('Đang lưu link ảnh lên máy chủ... ⏳');
     setShowUrlDialog(false);
@@ -131,6 +133,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
     const res = await saveServerAvatar(cleanUrl);
     setIsSavingServer(false);
     if (res.success) {
+      avatarRevision.current++;
       setAvatarSrc(res.avatarUrl || cleanUrl);
       setAvatarNotice('✨ ĐÃ LƯU ẢNH LÊN MÁY CHỦ! Người khác bấm link sẽ thấy ngay ảnh mới này!');
     } else {
@@ -146,10 +149,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
       openLoginModal();
       return;
     }
+    avatarRevision.current++;
     setIsSavingServer(true);
     const saved = await resetServerAvatar();
     setIsSavingServer(false);
     if (saved) {
+      avatarRevision.current++;
       setAvatarSrc(AVATAR_URL);
       localStorage.removeItem(AVATAR_STORAGE_KEY);
     }
@@ -257,13 +262,19 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
                   isAvatarDragOver ? 'border-[#26c281] ring-4 ring-[#26c281]/50' : 'border-[#f6c833]'
                 } shadow-[6px_6px_0px_#0a0514] p-3 relative overflow-hidden flex items-center justify-center transition-all`}
               >
-                <img
+                {avatarSrc ? (
+<img
                   key={avatarSrc}
                   src={avatarSrc}
                   alt="Phương Anh Avatar"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover border-[3px] border-[#5a3696] bg-[#120a21] select-none group-hover:scale-105 transition-transform duration-300"
                 />
+                ) : (
+                  <div role="status" aria-live="polite" className="w-full h-full bg-[#120a21] border-[3px] border-[#5a3696] flex items-center justify-center text-xs text-[#d1c5ad]">
+                    {avatarLoadFailed ? (isVi ? 'Chưa tải được ảnh' : 'Photo unavailable') : (isVi ? 'Đang tải ảnh…' : 'Loading photo…')}
+                  </div>
+                )}
                 
                 {/* Hover Overlay Button to change avatar - Admin only */}
                 {isAdmin && (
@@ -302,7 +313,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
                     <span className="material-symbols-outlined text-xs">link</span>
                     <span>{t.pasteUrlBtn}</span>
                   </button>
-                  {avatarSrc !== AVATAR_URL && (
+                  {avatarSrc && avatarSrc !== AVATAR_URL && (
                     <button
                       type="button"
                       disabled={isSavingServer}

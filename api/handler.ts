@@ -1,4 +1,4 @@
-import { get, put, BlobPreconditionFailedError } from '@vercel/blob';
+import { get, put, del, BlobPreconditionFailedError } from '@vercel/blob';
 import { createHmac, timingSafeEqual, pbkdf2Sync, randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
@@ -86,6 +86,28 @@ async function saveImage(value: string) {
   return '/api/media/' + pathname.slice('media/'.length);
 }
 
+function mediaPaths(state: any): Set<string> {
+  const urls = [state?.avatarUrl, ...(Array.isArray(state?.photos) ? state.photos.map((photo: any) => photo?.image) : [])];
+  return new Set(urls.flatMap(url => {
+    if (typeof url !== 'string') return [];
+    const match = url.match(/^\/api\/media\/([a-f0-9]{36}\.(?:jpg|png|webp|gif))$/);
+    return match ? ['media/' + match[1]] : [];
+  }));
+}
+
+async function removeReplacedImages(previous: any) {
+  try {
+    const latest = (await readJson(STATE, {})).data;
+    const currentPaths = mediaPaths(latest);
+    for (const pathname of mediaPaths(previous)) {
+      if (!currentPaths.has(pathname)) await del(pathname);
+    }
+  } catch (error) {
+    // The new state is already saved. A cleanup failure must not roll it back.
+    console.warn('Could not remove an unused portfolio image');
+  }
+}
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
   const route = String(req.query?.route || new URL(req.url, 'https://portfolio.local').pathname.replace(/^\/api\/?/, ''));
@@ -168,22 +190,28 @@ export default async function handler(req: any, res: any) {
       return res.json({ success: true, url: await saveImage(body.imageBase64) });
     }
     if (route === 'portfolio/avatar') {
+      const previous = (await readJson(STATE, {})).data;
       const avatarUrl = await saveImage(body.avatarUrl || body.imageBase64);
       await mutate(STATE, { photos: [] }, current => ({ ...current, avatarUrl, updatedAt: Date.now() }));
+      await removeReplacedImages(previous);
       return res.json({ success: true, avatarUrl });
     }
     if (route === 'portfolio/reset-avatar') {
+      const previous = (await readJson(STATE, {})).data;
       await mutate(STATE, { photos: [] }, current => ({ ...current, avatarUrl: null, updatedAt: Date.now() }));
+      await removeReplacedImages(previous);
       return res.json({ success: true });
     }
     if (route === 'portfolio/photos') {
       if (!Array.isArray(body.photos) || body.photos.length > 200) return res.status(400).json({ error: 'Danh sách ảnh không hợp lệ.' });
+      const previous = (await readJson(STATE, {})).data;
       const photos: any[] = [];
       for (const item of body.photos) {
         if (!item || typeof item.id !== 'string' || !validImageUrl(item.image)) return res.status(400).json({ error: 'Ảnh không hợp lệ.' });
         photos.push({ ...item, image: await saveImage(item.image) });
       }
       await mutate(STATE, { avatarUrl: null }, current => ({ ...current, photos, updatedAt: Date.now() }));
+      await removeReplacedImages(previous);
       return res.json({ success: true, photos });
     }
     return res.status(404).json({ error: 'Not found' });
