@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { VisitorJourney, HiddenStar, useVisitorJourney } from './components/VisitorJourney';
 import { Footer } from './components/Footer';
 import { HeroSection } from './components/HeroSection';
 import { HobbiesZone } from './components/HobbiesZone';
@@ -19,6 +20,7 @@ import { SectionTab } from './types';
 
 function MainAppContent() {
   const [activeSection, setActiveSection] = useState<SectionTab>('overview');
+  const journey = useVisitorJourney(activeSection);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const { isVi } = useLanguage();
 
@@ -86,6 +88,7 @@ function MainAppContent() {
 
       {/* Main Canvas Content */}
       <main className="max-w-[1200px] w-full mx-auto px-4 md:px-6 py-6 relative z-10 flex-1">
+        <VisitorJourney journey={journey} onNavigate={handleSelectSection} />
         {/* Navigation Breadcrumb / Quick Back to Home */}
         {activeSection !== 'overview' && (
           <div className="mb-6 flex items-center justify-between bg-[#191127]/90 border-[2px] border-[#5a3696] px-4 py-2.5 pixel-box-sm backdrop-blur-md">
@@ -293,6 +296,7 @@ function MainAppContent() {
             <ContactSection onOpenModal={handleOpenContact} />
           </div>
         )}
+        <HiddenStar key={activeSection} section={activeSection} journey={journey} />
       </main>
 
       {/* Retro Social Popup Modal */}
