@@ -56,94 +56,28 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
 
-  // Tải danh sách ảnh từ server và đồng bộ 2 chiều (bảo đảm tất cả máy khác & IP mới đều thấy ảnh)
+  // The server is authoritative, including an intentionally empty board.
   useEffect(() => {
-    let isMounted = true;
-
-    const syncState = async () => {
-      try {
-        const serverState = await fetchPortfolioState();
-        if (!isMounted) return;
-
-        // Trường hợp 1: Máy chủ đã có ảnh => Máy chủ là chân lý tuyệt đối cho mọi máy khách
-        if (serverState && Array.isArray(serverState.photos) && serverState.photos.length > 0) {
-          setPolaroidList(serverState.photos);
-          try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serverState.photos));
-          } catch {
-            // ignore
-          }
-        }
-        // Trường hợp 2: Máy chủ chưa có ảnh (hoặc vừa được khởi động), nhưng máy này đã có ảnh trong localStorage
-        // (tức là trước đó Admin đã ghim ảnh trên máy này nhưng chưa lưu lên server):
-        // => Tự động ĐẨY TOÀN BỘ ẢNH LÊN MÁY CHỦ ngay lập tức để tất cả máy khác mở link đều thấy!
-        else {
-          const localSaved = localStorage.getItem(LOCAL_STORAGE_KEY);
-          if (localSaved) {
-            try {
-              const parsed = JSON.parse(localSaved);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                setPolaroidList(parsed);
-                // Nếu là Admin hoặc có phiên đăng nhập, đồng bộ ngay lên server
-                const token = getStoredAdminToken();
-                if (token || isAdmin) {
-                  console.log('[Polaroid] Pushing local photos to server for all devices...');
-                  const pushRes = await saveServerPhotos(parsed);
-                  if (pushRes.success && pushRes.photos) {
-                    setPolaroidList(pushRes.photos);
-                  }
-                }
-              }
-            } catch {
-              // ignore
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('[Polaroid] Error during mount sync:', err);
+    let active = true;
+    const refresh = async () => {
+      const state = await fetchPortfolioState();
+      if (active && Array.isArray(state.photos)) {
+        setPolaroidList(state.photos);
+        try { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.photos)); } catch {}
       }
     };
-
-    syncState();
-
-    // Định kỳ kiểm tra máy chủ mỗi 10 giây:
-    // Giúp các thiết bị khác hoặc các tab đang mở tự động cập nhật ngay khi chủ nhân ghim ảnh mới
-    const interval = setInterval(() => {
-      fetchPortfolioState().then((serverState) => {
-        if (!isMounted) return;
-        if (serverState && Array.isArray(serverState.photos)) {
-          setPolaroidList((prev) => {
-            // So sánh nếu có sự thay đổi thì mới render lại
-            const prevStr = JSON.stringify(prev);
-            const serverStr = JSON.stringify(serverState.photos);
-            if (prevStr !== serverStr && serverState.photos!.length > 0) {
-              try {
-                localStorage.setItem(LOCAL_STORAGE_KEY, serverStr);
-              } catch {
-                // ignore
-              }
-              return serverState.photos as PolaroidItem[];
-            }
-            return prev;
-          });
-        }
-      }).catch(() => {});
-    }, 10000);
-
+    void refresh();
+    const timer = window.setInterval(refresh, 10000);
+    window.addEventListener('focus', refresh);
     return () => {
-      isMounted = false;
-      clearInterval(interval);
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
     };
-  }, [isAdmin]);
+  }, []);
 
   // Lưu thay đổi lên máy chủ (cho tất cả IP/thiết bị khác) và localStorage
   const updateList = async (newList: PolaroidItem[]) => {
-    setPolaroidList(newList);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newList));
-    } catch {
-      // ignore storage quota error
-    }
 
     setUploadNotice(
       isVi
@@ -153,6 +87,7 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
 
     const res = await saveServerPhotos(newList);
     if (res.success) {
+      setPolaroidList(res.photos || newList);
       if (res.photos) {
         setPolaroidList(res.photos);
         try {
@@ -198,8 +133,6 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
       return;
     }
     await updateList([]);
-    setUploadNotice(isVi ? 'Đã làm trống toàn bộ ảnh trên bảng!' : 'Cleared all photos from board!');
-    setTimeout(() => setUploadNotice(null), 3000);
   };
 
   // Nén ảnh tự động về kích thước chuẩn và mở modal xem trước
@@ -374,8 +307,7 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
       setSelectedPhoto(null);
     }
     updateList(updated);
-    setUploadNotice('Đã gỡ ảnh khỏi bảng ghim.');
-    setTimeout(() => setUploadNotice(null), 3000);
+
   };
 
   const [isDraggingOver, setIsDraggingOver] = useState(false);
