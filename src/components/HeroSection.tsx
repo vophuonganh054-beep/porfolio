@@ -41,10 +41,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
   useEffect(() => {
     let isMounted = true;
     fetchPortfolioState().then((state) => {
-      if (isMounted && state.avatarUrl) {
-        setAvatarSrc(state.avatarUrl);
+      if (isMounted && 'avatarUrl' in state) {
+        setAvatarSrc(state.avatarUrl || AVATAR_URL);
         try {
-          localStorage.setItem(AVATAR_STORAGE_KEY, state.avatarUrl);
+          localStorage.setItem(AVATAR_STORAGE_KEY, state.avatarUrl || AVATAR_URL);
         } catch {
           // ignore
         }
@@ -53,10 +53,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
 
     const interval = setInterval(() => {
       fetchPortfolioState().then((state) => {
-        if (isMounted && state.avatarUrl && state.avatarUrl !== avatarSrc) {
-          setAvatarSrc(state.avatarUrl);
+        if (isMounted && 'avatarUrl' in state) {
+          setAvatarSrc(state.avatarUrl || AVATAR_URL);
           try {
-            localStorage.setItem(AVATAR_STORAGE_KEY, state.avatarUrl);
+            localStorage.setItem(AVATAR_STORAGE_KEY, state.avatarUrl || AVATAR_URL);
           } catch {
             // ignore
           }
@@ -107,7 +107,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
         }
         setAvatarNotice('✨ ĐÃ CẬP NHẬT ẢNH THÀNH CÔNG! Bất kỳ ai mở link này đều sẽ thấy ảnh mới của bạn!');
       } else {
-        setAvatarNotice('✨ Đã cập nhật ảnh đại diện!');
+        setAvatarNotice('⚠️ Chưa lưu được ảnh lên máy chủ. Người khác chưa thấy thay đổi.');
       }
       setTimeout(() => setAvatarNotice(null), 5000);
     } catch (err) {
@@ -153,7 +153,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
     if (res.success) {
       setAvatarNotice('✨ ĐÃ LƯU ẢNH LÊN MÁY CHỦ! Người khác bấm link sẽ thấy ngay ảnh mới này!');
     } else {
-      setAvatarNotice('✨ Đã cập nhật ảnh đại diện mới!');
+      setAvatarNotice('⚠️ Chưa lưu được ảnh lên máy chủ. Người khác chưa thấy thay đổi.');
     }
     setTimeout(() => setAvatarNotice(null), 5000);
   };
