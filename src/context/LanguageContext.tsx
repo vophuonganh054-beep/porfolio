@@ -1,19 +1,19 @@
+import { PixelIcon, pixelText } from "../components/PixelIcon";
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
 export type Language = 'vi' | 'en';
-
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
   isVi: boolean;
 }
-
 const LANGUAGE_STORAGE_KEY = 'my_world_lang_pref';
-
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
-
-export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const LanguageProvider: React.FC<{
+  children: React.ReactNode;
+}> = ({
+  children
+}) => {
   const [language, setLanguageState] = useState<Language>(() => {
     try {
       const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -23,7 +23,6 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     return 'vi';
   });
-
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     try {
@@ -32,25 +31,18 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // ignore
     }
   };
-
   const toggleLanguage = () => {
     setLanguage(language === 'vi' ? 'en' : 'vi');
   };
-
-  return (
-    <LanguageContext.Provider
-      value={{
-        language,
-        setLanguage,
-        toggleLanguage,
-        isVi: language === 'vi',
-      }}
-    >
-      {children}
-    </LanguageContext.Provider>
-  );
+  return <LanguageContext.Provider value={{
+    language,
+    setLanguage,
+    toggleLanguage,
+    isVi: language === 'vi'
+  }}>
+      {pixelText(children)}
+    </LanguageContext.Provider>;
 };
-
 export function useLanguage() {
   const context = useContext(LanguageContext);
   if (!context) {
