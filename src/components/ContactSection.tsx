@@ -18,62 +18,37 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
   const [senderMessage, setSenderMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sentSuccess, setSentSuccess] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const [website, setWebsite] = useState('');
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!senderMessage.trim()) return;
-
+    if (isSending || !senderMessage.trim()) return;
     setIsSending(true);
+    setSentSuccess(false);
+    setSendError('');
     playRetroBeep('select');
-
-    const name = senderName.trim() || (isVi ? 'Khách ghé thăm MY WORLD' : 'MY WORLD Guest');
-    const email = senderEmail.trim() || 'guest@myworld.app';
-    const message = senderMessage.trim();
-
     try {
-      // 1. Send to local server API (persists in data/pigeon-messages.json and forwards to Gmail)
-      await fetch('/api/contact/pigeon', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, message }),
+      const response = await fetch('/api/contact/pigeon', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: senderName.trim() || (isVi ? 'Khách ghé thăm MY WORLD' : 'MY WORLD Guest'),
+          email: senderEmail.trim(), message: senderMessage.trim(), website,
+        }),
       });
-
-      // 2. Direct client-side forward to FormSubmit for 100% delivery guarantee to vophuonganh054@gmail.com
-      try {
-        await fetch('https://formsubmit.co/ajax/vophuonganh054@gmail.com', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            message,
-            _subject: `[MY WORLD] 🕊️ Thư Bồ Câu mới từ ${name}`,
-            _template: 'table',
-            _captcha: 'false',
-          }),
-        });
-      } catch (submitErr) {
-        console.warn('FormSubmit note:', submitErr);
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || (isVi ? 'Chưa gửi được thư. Vui lòng thử lại.' : 'Could not send your message. Please try again.'));
       }
-
-      setIsSending(false);
       setSentSuccess(true);
       playRetroBeep('coin');
       spawnPixelBurst(window.innerWidth / 2, window.innerHeight / 2, 20);
-      setSenderName('');
-      setSenderEmail('');
-      setSenderMessage('');
-
-      setTimeout(() => {
-        setSentSuccess(false);
-      }, 12000);
-    } catch (err) {
-      console.error('Error sending pigeon message:', err);
+      setSenderName(''); setSenderEmail(''); setSenderMessage('');
+      setTimeout(() => setSentSuccess(false), 12000);
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : (isVi ? 'Chưa gửi được thư. Vui lòng thử lại.' : 'Could not send your message.'));
+    } finally {
       setIsSending(false);
-      setSentSuccess(true);
     }
   };
 
@@ -206,7 +181,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
                 </span>
               </div>
               <span className="text-[10px] font-mono bg-[#120a21] text-[#26c281] border border-[#26c281] px-2 py-0.5">
-                GMAIL_LINKED
+                GMAIL
               </span>
             </div>
 
@@ -224,6 +199,8 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
             </p>
 
             <form onSubmit={handleSendMessage} className="space-y-3.5">
+              <div className="hidden" aria-hidden="true"><input name="website" tabIndex={-1} autoComplete="off" value={website} onChange={e => setWebsite(e.target.value)} /></div>
+              {sendError && <div role="alert" className="border-2 border-red-400 bg-[#120a21] p-3 text-xs text-red-300">{sendError}</div>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-['Space_Mono'] font-bold text-[#d1c5ad] mb-1">
@@ -259,6 +236,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
                 <textarea
                   required
                   rows={4}
+                  maxLength={5000}
                   value={senderMessage}
                   onChange={(e) => setSenderMessage(e.target.value)}
                   placeholder={isVi ? 'Nhập lời nhắn gửi đến Phương Anh...' : 'Type your message to Phuong Anh...'}
@@ -278,8 +256,8 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
                   </div>
                   <p className="text-[11px] text-[#a798c4]">
                     {isVi
-                      ? 'Phương Anh sẽ nhận được thông báo vào Gmail ngay. Cảm ơn bạn đã ghé thăm MY WORLD!'
-                      : 'Phuong Anh will receive an alert in her Gmail. Thank you for visiting MY WORLD!'}
+                      ? 'Bạn có thể kiểm tra lại email phản hồi trước lần gửi tiếp theo. Cảm ơn bạn đã ghé thăm MY WORLD!'
+                      : 'Thank you for visiting MY WORLD!'}
                   </p>
                 </div>
               )}

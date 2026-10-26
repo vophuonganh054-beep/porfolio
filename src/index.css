@@ -8,11 +8,12 @@
   }
 
   html, body, body * {
-    cursor: url('/kirby-arrow.svg') 4 4, auto !important;
+    cursor: url('/kirby-arrow.svg') 5 5, auto !important;
   }
 
-  button, a, select, [role="button"], .cursor-pointer, .pixel-btn-action, .pixel-slot, .dpad-btn {
-    cursor: url('/kirby-hand.svg') 27 6, pointer !important;
+  :is(button, a, select, [role="button"], .cursor-pointer, .pixel-btn-action, .pixel-slot, .dpad-btn),
+  :is(button, a, select, [role="button"], .cursor-pointer, .pixel-btn-action, .pixel-slot, .dpad-btn) * {
+    cursor: url('/kirby-hand.svg') 39 6, pointer !important;
   }
 }
 

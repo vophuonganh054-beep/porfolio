@@ -19,12 +19,13 @@ async function mutate(path: string, fallback: any, change: (state: any) => any) 
     try {
       await put(path, JSON.stringify(next), {
         access: 'private', contentType: 'application/json',
-        addRandomSuffix: false, allowOverwrite: true,
+        addRandomSuffix: false, allowOverwrite: Boolean(etag),
         ...(etag ? { ifMatch: etag } : {}),
       });
       return next;
     } catch (error) {
-      if (!(error instanceof BlobPreconditionFailedError) || retry === 2) throw error;
+      if (!(error instanceof BlobPreconditionFailedError) && (error as Error).name !== 'BlobAlreadyExistsError') throw error;
+      if (retry === 2) throw error;
     }
   }
 }
@@ -106,9 +107,53 @@ export default async function handler(req: any, res: any) {
       return res.json({ success: true, avatarUrl: data.avatarUrl || null, photos: data.photos || [], updatedAt: data.updatedAt || null });
     }
     if (req.method === 'POST' && route === 'contact/pigeon') {
-      if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 5000) return res.status(400).json({ error: 'Tin nhắn không hợp lệ' });
-      await mutate('portfolio/messages.json', [], (messages) => [{ id: randomBytes(12).toString('hex'), name: String(body.name || '').slice(0, 120), email: String(body.email || '').slice(0, 200), message: body.message, createdAt: Date.now() }, ...messages].slice(0, 200));
-      return res.json({ success: true, message: 'Đã lưu tin nhắn cho quản trị viên.' });
+      if (body.website) return res.status(400).json({ success: false, error: 'Tin nhắn không hợp lệ.' });
+      if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 5000) return res.status(400).json({ success: false, error: 'Tin nhắn cần có nội dung và không quá 5.000 ký tự.' });
+      const email = String(body.email || '').trim();
+      if (email && (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return res.status(400).json({ success: false, error: 'Email phản hồi không hợp lệ.' });
+      const visitor = sign(String(req.headers['x-forwarded-for'] || '').split(',')[0]);
+      const ratePath = 'portfolio/rates/' + visitor + '.json';
+      let limited = false;
+      await mutate(ratePath, { count: 0, until: 0 }, state => {
+        const rate = state.until > Date.now() ? state : { count: 0, until: Date.now() + 600000 };
+        limited = rate.count >= 3;
+        return limited ? rate : { ...rate, count: rate.count + 1 };
+      });
+      if (limited) return res.status(429).json({ success: false, error: 'Bạn đã gửi nhiều thư. Vui lòng chờ 10 phút rồi thử lại.' });
+      const entry = {
+        id: randomBytes(12).toString('hex'),
+        senderName: String(body.name || 'Khách ghé thăm MY WORLD').trim().slice(0, 120),
+        senderEmail: email,
+        message: body.message.trim(), createdAt: Date.now(), delivery: 'pending',
+      };
+      await mutate('portfolio/messages.json', [], messages => [entry, ...messages].slice(0, 200));
+      let delivery = 'failed';
+      try {
+        const response = await fetch('https://formsubmit.co/ajax/vophuonganh054@gmail.com', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json', Referer: 'https://porfolio-glanz4.vercel.app/' },
+          signal: AbortSignal.timeout(15000),
+          body: JSON.stringify({
+            name: entry.senderName, ...(email ? { email, _replyto: email } : {}),
+            message: entry.message,
+            _subject: '[MY WORLD] Thư bồ câu từ ' + entry.senderName.replace(/[\r\n]/g, ' '),
+            _template: 'table', _captcha: 'false',
+            _url: 'https://porfolio-glanz4.vercel.app/',
+          }),
+        });
+        const result = await response.json();
+        const activationRequired = /activat|confirm.*email/i.test(String(result.message || ''));
+        if (activationRequired) delivery = 'activation_required';
+        else if (response.ok && (result.success === true || result.success === 'true')) delivery = 'accepted';
+      } catch (error) { console.warn('Pigeon mail delivery failed'); }
+      await mutate('portfolio/messages.json', [], messages => messages.map((message: any) => message.id === entry.id ? { ...message, delivery } : message));
+      if (delivery !== 'accepted') return res.status(502).json({
+        success: false, saved: true, delivery,
+        error: delivery === 'activation_required'
+          ? 'Thư đã được lưu. Chủ website cần xác nhận email FormSubmit để nhận thư qua Gmail.'
+          : 'Thư đã được lưu nhưng chưa chuyển được tới Gmail. Vui lòng thử lại sau.',
+      });
+      return res.json({ success: true, delivery: 'accepted', message: 'Đã gửi thư bồ câu.', id: entry.id });
     }
     const auth = await readAuth();
     if (route === 'auth/login' && req.method === 'POST') {
