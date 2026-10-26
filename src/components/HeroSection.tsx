@@ -1,4 +1,3 @@
-import { PixelIcon, pixelText } from "./PixelIcon";
 import React, { useState, useRef, useEffect } from 'react';
 import { AVATAR_URL } from '../data/portfolioData';
 import { spawnPixelBurst } from '../utils/fx';
@@ -9,25 +8,20 @@ import { compressImage } from '../utils/imageCompressor';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { TRANSLATIONS } from '../utils/translations';
+
 import { SectionTab } from '../types';
+
 interface HeroSectionProps {
   onOpenContact: (e?: React.MouseEvent) => void;
   onSendLove?: (e?: React.MouseEvent) => void;
   onNavigateSection?: (section: SectionTab) => void;
 }
+
 const AVATAR_STORAGE_KEY = 'pa_custom_avatar_v2';
-export const HeroSection: React.FC<HeroSectionProps> = ({
-  onOpenContact,
-  onNavigateSection
-}) => {
-  const {
-    isAdmin,
-    openLoginModal
-  } = useAuth();
-  const {
-    language,
-    isVi
-  } = useLanguage();
+
+export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavigateSection }) => {
+  const { isAdmin, openLoginModal } = useAuth();
+  const { language, isVi } = useLanguage();
   const t = TRANSLATIONS[language].hero;
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarSrc, setAvatarSrc] = useState<string>('');
@@ -42,9 +36,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   useEffect(() => {
     let active = true;
     let pending = false;
-    try {
-      localStorage.removeItem(AVATAR_STORAGE_KEY);
-    } catch {}
+    try { localStorage.removeItem(AVATAR_STORAGE_KEY); } catch {}
     const refresh = async () => {
       if (pending) return;
       pending = true;
@@ -58,9 +50,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         } else {
           setAvatarLoadFailed(true);
         }
-      } finally {
-        pending = false;
-      }
+      } finally { pending = false; }
     };
     void refresh();
     const timer = window.setInterval(refresh, 15000);
@@ -71,22 +61,28 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       window.removeEventListener('focus', refresh);
     };
   }, []);
+
   const [isAvatarDragOver, setIsAvatarDragOver] = useState(false);
+
   const processAvatarFile = async (file: File) => {
     if (!isAdmin) {
       setAvatarNotice('🛡️ Bạn đang ở chế độ Người xem (Viewer). Chỉ Admin (Phương Anh) mới có quyền đổi ảnh!');
       openLoginModal();
       return;
     }
+
     if (!file.type.startsWith('image/')) {
       alert('Vui lòng chọn tệp hình ảnh (.jpg, .png, .webp, ...)!');
       return;
     }
+
     avatarRevision.current++;
     setIsSavingServer(true);
     setAvatarNotice('Đang tối ưu và lưu ảnh lên máy chủ... ⏳');
+
     try {
       const compressedBase64 = await compressImage(file, 800, 800, 0.88);
+
       const res = await saveServerAvatar(compressedBase64);
       setIsSavingServer(false);
       if (res.success && res.avatarUrl) {
@@ -109,6 +105,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       setTimeout(() => setAvatarNotice(null), 4000);
     }
   };
+
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -116,6 +113,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     }
     e.target.value = '';
   };
+
   const handleSaveUrlAvatar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) {
@@ -125,11 +123,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     }
     const cleanUrl = customUrlInput.trim();
     if (!cleanUrl) return;
+
     avatarRevision.current++;
     setIsSavingServer(true);
     setAvatarNotice('Đang lưu link ảnh lên máy chủ... ⏳');
     setShowUrlDialog(false);
     setCustomUrlInput('');
+
+
     const res = await saveServerAvatar(cleanUrl);
     setIsSavingServer(false);
     if (res.success) {
@@ -141,6 +142,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     }
     setTimeout(() => setAvatarNotice(null), 5000);
   };
+
   const handleResetAvatar = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isAdmin) {
@@ -160,28 +162,43 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     setAvatarNotice(saved ? 'Đã khôi phục ảnh đại diện ban đầu!' : '⚠️ Chưa lưu được thay đổi lên máy chủ.');
     setTimeout(() => setAvatarNotice(null), 3000);
   };
+
   const handleStageClick = (e: React.MouseEvent) => {
     spawnPixelBurst(e.clientX, e.clientY, 8);
   };
+
   const handleAvatarClick = (e: React.MouseEvent) => {
     spawnPixelBurst(e.clientX, e.clientY, 10);
   };
-  return <section className="relative" id="hero">
+
+  return (
+    <section className="relative" id="hero">
       {/* Hidden Avatar File Input */}
-      <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFileChange} />
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleAvatarFileChange}
+      />
 
       {/* Stage Badge */}
-      <div className="mb-4 inline-flex items-center gap-2 bg-[#1f1730]/90 border-[3px] border-[#5a3696] px-4 py-2 pixel-box-sm cursor-pointer" onClick={handleStageClick}>
+      <div
+        className="mb-4 inline-flex items-center gap-2 bg-[#1f1730]/90 border-[3px] border-[#5a3696] px-4 py-2 pixel-box-sm cursor-pointer"
+        onClick={handleStageClick}
+      >
         <span className="w-3 h-3 bg-[#26c281] border border-black inline-block animate-ping" />
         <span className="font-['Space_Mono'] text-xs text-[#26c281] uppercase tracking-wider font-bold">
-          {pixelText(t.stageBadge)}
+          {t.stageBadge}
         </span>
       </div>
 
-      {pixelText(avatarNotice && <div className="mb-4 bg-[#26c281] text-[#120a21] border-2 border-black px-4 py-2 text-xs font-['Space_Mono'] font-bold flex items-center justify-between shadow-[3px_3px_0px_#0a0514] animate-bounce">
-          <span>{pixelText("✨ ")}{pixelText(avatarNotice)}</span>
-          <button type="button" onClick={() => setAvatarNotice(null)} className="font-bold ml-2">{pixelText("✕")}</button>
-        </div>)}
+      {avatarNotice && (
+        <div className="mb-4 bg-[#26c281] text-[#120a21] border-2 border-black px-4 py-2 text-xs font-['Space_Mono'] font-bold flex items-center justify-between shadow-[3px_3px_0px_#0a0514] animate-bounce">
+          <span>✨ {avatarNotice}</span>
+          <button type="button" onClick={() => setAvatarNotice(null)} className="font-bold ml-2">✕</button>
+        </div>
+      )}
 
       {/* Main Profile Box */}
       <div className="bg-[#1f1730]/95 backdrop-blur-sm border-[4px] border-[#6c3fb5] pixel-box-lg p-6 md:p-8 relative overflow-hidden shadow-[6px_6px_0px_#0a0514]">
@@ -206,115 +223,194 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Avatar Column */}
           <div className="lg:col-span-5 flex flex-col items-center">
-            <div className={`relative group ${isAdmin ? 'cursor-pointer' : 'cursor-default'}`} onClick={() => {
-            if (!isAdmin) {
-              setAvatarNotice(t.viewerProtected);
-              openLoginModal();
-              return;
-            }
-            avatarInputRef.current?.click();
-          }} onDragOver={e => {
-            e.preventDefault();
-            if (isAdmin) {
-              setIsAvatarDragOver(true);
-            }
-          }} onDragLeave={e => {
-            e.preventDefault();
-            setIsAvatarDragOver(false);
-          }} onDrop={e => {
-            e.preventDefault();
-            setIsAvatarDragOver(false);
-            if (!isAdmin) {
-              setAvatarNotice(t.viewerProtected);
-              openLoginModal();
-              return;
-            }
-            const dropped = e.dataTransfer.files?.[0];
-            if (dropped) processAvatarFile(dropped);
-          }}>
-              <div className="absolute -top-4 -right-3 z-10 bg-[#f6c833] border-[3px] border-black px-3 py-1 font-['Space_Mono'] text-xs text-[#120a21] font-bold shadow-[3px_3px_0px_#0a0514]">{pixelText("LV. 19 ★")}</div>
-              <div className={`w-56 h-56 md:w-64 md:h-64 bg-[#2e263f] border-[4px] ${isAvatarDragOver ? 'border-[#26c281] ring-4 ring-[#26c281]/50' : 'border-[#f6c833]'} shadow-[6px_6px_0px_#0a0514] p-3 relative overflow-hidden flex items-center justify-center transition-all`}>
-                {pixelText(avatarSrc ? <img key={avatarSrc} src={avatarSrc} alt="Phương Anh Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover border-[3px] border-[#5a3696] bg-[#120a21] select-none group-hover:scale-105 transition-transform duration-300" /> : <div role="status" aria-live="polite" className="w-full h-full bg-[#120a21] border-[3px] border-[#5a3696] flex items-center justify-center text-xs text-[#d1c5ad]">
-                    {pixelText(avatarLoadFailed ? isVi ? 'Chưa tải được ảnh' : 'Photo unavailable' : isVi ? 'Đang tải ảnh…' : 'Loading photo…')}
-                  </div>)}
+            <div
+              className={`relative group ${isAdmin ? 'cursor-pointer' : 'cursor-default'}`}
+              onClick={() => {
+                if (!isAdmin) {
+                  setAvatarNotice(t.viewerProtected);
+                  openLoginModal();
+                  return;
+                }
+                avatarInputRef.current?.click();
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (isAdmin) {
+                  setIsAvatarDragOver(true);
+                }
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setIsAvatarDragOver(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsAvatarDragOver(false);
+                if (!isAdmin) {
+                  setAvatarNotice(t.viewerProtected);
+                  openLoginModal();
+                  return;
+                }
+                const dropped = e.dataTransfer.files?.[0];
+                if (dropped) processAvatarFile(dropped);
+              }}
+            >
+              <div className="absolute -top-4 -right-3 z-10 bg-[#f6c833] border-[3px] border-black px-3 py-1 font-['Space_Mono'] text-xs text-[#120a21] font-bold shadow-[3px_3px_0px_#0a0514]">
+                LV. 19 ★
+              </div>
+              <div
+                className={`w-56 h-56 md:w-64 md:h-64 bg-[#2e263f] border-[4px] ${
+                  isAvatarDragOver ? 'border-[#26c281] ring-4 ring-[#26c281]/50' : 'border-[#f6c833]'
+                } shadow-[6px_6px_0px_#0a0514] p-3 relative overflow-hidden flex items-center justify-center transition-all`}
+              >
+                {avatarSrc ? (
+<img
+                  key={avatarSrc}
+                  src={avatarSrc}
+                  alt="Phương Anh Avatar"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover border-[3px] border-[#5a3696] bg-[#120a21] select-none group-hover:scale-105 transition-transform duration-300"
+                />
+                ) : (
+                  <div role="status" aria-live="polite" className="w-full h-full bg-[#120a21] border-[3px] border-[#5a3696] flex items-center justify-center text-xs text-[#d1c5ad]">
+                    {avatarLoadFailed ? (isVi ? 'Chưa tải được ảnh' : 'Photo unavailable') : (isVi ? 'Đang tải ảnh…' : 'Loading photo…')}
+                  </div>
+                )}
                 
                 {/* Hover Overlay Button to change avatar - Admin only */}
-                {pixelText(isAdmin && <div className="absolute inset-x-3 bottom-8 bg-[#120a21]/90 hover:bg-[#f6c833] text-[#f6c833] hover:text-[#120a21] border border-[#f6c833] py-1 font-['Space_Mono'] text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 cursor-pointer">
-                    <PixelIcon className="text-sm">photo_camera</PixelIcon>
-                    <span>{pixelText(t.uploadPhotoBtn)}</span>
-                  </div>)}
+                {isAdmin && (
+                  <div className="absolute inset-x-3 bottom-8 bg-[#120a21]/90 hover:bg-[#f6c833] text-[#f6c833] hover:text-[#120a21] border border-[#f6c833] py-1 font-['Space_Mono'] text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 cursor-pointer">
+                    <span className="material-symbols-outlined text-sm">photo_camera</span>
+                    <span>{t.uploadPhotoBtn}</span>
+                  </div>
+                )}
 
                 <div className="absolute bottom-2 left-2 right-2 bg-[#120a21]/95 text-[#f6c833] text-center py-0.5 font-['Space_Mono'] text-[10px] select-none border border-[#5a3696] font-bold">
-                  STATUS: {pixelText(isVi ? 'ĐANG ONLINE & KHÁM PHÁ THẾ GIỚI SỐ' : 'ONLINE & EXPLORING DIGITAL REALMS')}
+                  STATUS: {isVi ? 'ĐANG ONLINE & KHÁM PHÁ THẾ GIỚI SỐ' : 'ONLINE & EXPLORING DIGITAL REALMS'}
                 </div>
               </div>
             </div>
 
             {/* Avatar controls: Admin vs Viewer */}
-            {pixelText(isAdmin ? <>
+            {isAdmin ? (
+              <>
                 <div className="mt-2 flex flex-wrap justify-center items-center gap-2">
-                  <button type="button" disabled={isSavingServer} onClick={() => avatarInputRef.current?.click()} className="bg-[#26c281] hover:bg-[#20a36c] text-[#120a21] text-[11px] font-['Space_Mono'] font-bold px-3 py-1.5 border border-black shadow-[2px_2px_0px_#0a0514] flex items-center gap-1 cursor-pointer disabled:opacity-50" title={t.uploadPhotoBtn}>
-                    <PixelIcon className="text-xs">upload</PixelIcon>
-                    <span>{pixelText(isSavingServer ? t.saving : `📷 ${t.uploadPhotoBtn}`)}</span>
+                  <button
+                    type="button"
+                    disabled={isSavingServer}
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="bg-[#26c281] hover:bg-[#20a36c] text-[#120a21] text-[11px] font-['Space_Mono'] font-bold px-3 py-1.5 border border-black shadow-[2px_2px_0px_#0a0514] flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    title={t.uploadPhotoBtn}
+                  >
+                    <span className="material-symbols-outlined text-xs">upload</span>
+                    <span>{isSavingServer ? t.saving : `📷 ${t.uploadPhotoBtn}`}</span>
                   </button>
-                  <button type="button" disabled={isSavingServer} onClick={() => setShowUrlDialog(true)} className="bg-[#f6c833] hover:bg-[#e0b020] text-[#120a21] text-[11px] font-['Space_Mono'] font-bold px-2.5 py-1.5 border border-black shadow-[2px_2px_0px_#0a0514] flex items-center gap-1 cursor-pointer disabled:opacity-50">
-                    <PixelIcon className="text-xs">link</PixelIcon>
-                    <span>{pixelText(t.pasteUrlBtn)}</span>
+                  <button
+                    type="button"
+                    disabled={isSavingServer}
+                    onClick={() => setShowUrlDialog(true)}
+                    className="bg-[#f6c833] hover:bg-[#e0b020] text-[#120a21] text-[11px] font-['Space_Mono'] font-bold px-2.5 py-1.5 border border-black shadow-[2px_2px_0px_#0a0514] flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-xs">link</span>
+                    <span>{t.pasteUrlBtn}</span>
                   </button>
-                  {pixelText(avatarSrc && avatarSrc !== AVATAR_URL && <button type="button" disabled={isSavingServer} onClick={handleResetAvatar} title={t.resetAvatarTooltip} className="bg-[#2e263f] hover:bg-[#ef4444] hover:text-white text-[#d1c5ad] text-[11px] font-['Space_Mono'] font-bold px-2 py-1.5 border border-black shadow-[2px_2px_0px_#0a0514] cursor-pointer disabled:opacity-50">
-                      {pixelText(t.resetAvatarBtn)}
-                    </button>)}
+                  {avatarSrc && avatarSrc !== AVATAR_URL && (
+                    <button
+                      type="button"
+                      disabled={isSavingServer}
+                      onClick={handleResetAvatar}
+                      title={t.resetAvatarTooltip}
+                      className="bg-[#2e263f] hover:bg-[#ef4444] hover:text-white text-[#d1c5ad] text-[11px] font-['Space_Mono'] font-bold px-2 py-1.5 border border-black shadow-[2px_2px_0px_#0a0514] cursor-pointer disabled:opacity-50"
+                    >
+                      {t.resetAvatarBtn}
+                    </button>
+                  )}
                 </div>
 
                 <div className="mt-1.5 text-[10px] font-['Space_Mono'] text-[#26c281] text-center max-w-xs flex items-center justify-center gap-1">
-                  <span>{pixelText("👑")}</span>
-                  <span>{pixelText(t.adminNotice)}</span>
+                  <span>👑</span>
+                  <span>{t.adminNotice}</span>
                 </div>
-              </> : <div className="mt-2.5 flex flex-col items-center gap-1.5 text-center">
+              </>
+            ) : (
+              <div className="mt-2.5 flex flex-col items-center gap-1.5 text-center">
                 <div className="flex items-center gap-1.5 text-[11px] font-['Space_Mono'] text-[#d1c5ad] bg-[#120a21] border border-[#5a3696] px-3 py-1">
-                  <PixelIcon className="text-[#45b7d1] text-xs">shield</PixelIcon>
-                  <span>{pixelText(t.viewerProtected)}</span>
+                  <span className="material-symbols-outlined text-[#45b7d1] text-xs">shield</span>
+                  <span>{t.viewerProtected}</span>
                 </div>
-                <button type="button" onClick={openLoginModal} className="text-[11px] font-['Space_Mono'] text-[#f6c833] hover:underline flex items-center gap-1 cursor-pointer">
-                  <PixelIcon className="text-xs">key</PixelIcon>
-                  <span>{pixelText(t.viewerLoginHint)}</span>
+                <button
+                  type="button"
+                  onClick={openLoginModal}
+                  className="text-[11px] font-['Space_Mono'] text-[#f6c833] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-xs">key</span>
+                  <span>{t.viewerLoginHint}</span>
                 </button>
-              </div>)}
+              </div>
+            )}
 
             {/* URL Dialog Modal */}
-            {pixelText(showUrlDialog && <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowUrlDialog(false)}>
-                <div className="bg-[#1f1730] border-[3px] border-[#f6c833] pixel-box-sm p-5 w-full max-w-md shadow-[6px_6px_0px_#0a0514]" onClick={e => e.stopPropagation()}>
+            {showUrlDialog && (
+              <div
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+                onClick={() => setShowUrlDialog(false)}
+              >
+                <div
+                  className="bg-[#1f1730] border-[3px] border-[#f6c833] pixel-box-sm p-5 w-full max-w-md shadow-[6px_6px_0px_#0a0514]"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="flex items-center justify-between border-b-2 border-[#5a3696] pb-2 mb-3">
                     <h3 className="text-sm font-bold text-[#f6c833] font-['Space_Grotesk'] flex items-center gap-2">
-                      <PixelIcon className="text-base">link</PixelIcon>
-                      <span>{pixelText(t.pasteModalTitle)}</span>
+                      <span className="material-symbols-outlined text-base">link</span>
+                      <span>{t.pasteModalTitle}</span>
                     </h3>
-                    <button type="button" onClick={() => setShowUrlDialog(false)} className="text-[#eaddff] hover:text-[#ef4444] font-bold text-sm">{pixelText("✕")}</button>
+                    <button
+                      type="button"
+                      onClick={() => setShowUrlDialog(false)}
+                      className="text-[#eaddff] hover:text-[#ef4444] font-bold text-sm"
+                    >
+                      ✕
+                    </button>
                   </div>
                   <form onSubmit={handleSaveUrlAvatar} className="space-y-3 font-['Space_Mono']">
                     <p className="text-xs text-[#eaddff]">
-                      {pixelText(t.pasteModalDesc)}
+                      {t.pasteModalDesc}
                     </p>
-                    <input type="url" required placeholder="https://example.com/my-photo.jpg" value={customUrlInput} onChange={e => setCustomUrlInput(e.target.value)} className="w-full bg-[#120a21] border-2 border-[#5a3696] focus:border-[#f6c833] text-xs text-[#f3eeff] px-3 py-2 outline-none" />
+                    <input
+                      type="url"
+                      required
+                      placeholder="https://example.com/my-photo.jpg"
+                      value={customUrlInput}
+                      onChange={(e) => setCustomUrlInput(e.target.value)}
+                      className="w-full bg-[#120a21] border-2 border-[#5a3696] focus:border-[#f6c833] text-xs text-[#f3eeff] px-3 py-2 outline-none"
+                    />
                     <div className="flex justify-end gap-2 pt-2">
-                      <button type="button" onClick={() => setShowUrlDialog(false)} className="px-3 py-1 bg-[#2e263f] text-xs text-[#d1c5ad] border border-black cursor-pointer">
-                        {pixelText(t.cancel)}
+                      <button
+                        type="button"
+                        onClick={() => setShowUrlDialog(false)}
+                        className="px-3 py-1 bg-[#2e263f] text-xs text-[#d1c5ad] border border-black cursor-pointer"
+                      >
+                        {t.cancel}
                       </button>
-                      <button type="submit" className="px-4 py-1 bg-[#f6c833] hover:bg-[#d4a414] text-xs text-[#120a21] font-bold border border-black shadow-[2px_2px_0px_#000] cursor-pointer">
-                        {pixelText(t.saveToServer)}
+                      <button
+                        type="submit"
+                        className="px-4 py-1 bg-[#f6c833] hover:bg-[#d4a414] text-xs text-[#120a21] font-bold border border-black shadow-[2px_2px_0px_#000] cursor-pointer"
+                      >
+                        {t.saveToServer}
                       </button>
                     </div>
                   </form>
                 </div>
-              </div>)}
+              </div>
+            )}
 
             {/* Achievement Badges Strip */}
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <span className="bg-[#2e263f] border-[2px] border-[#5a3696] px-2.5 py-1 font-['Space_Mono'] text-[11px] flex items-center gap-1 shadow-[2px_2px_0px_#0a0514] text-[#f3eeff] font-bold">
-                {pixelText(t.badges.nerd)}
+                {t.badges.nerd}
               </span>
               <span className="bg-[#2e263f] border-[2px] border-[#5a3696] px-2.5 py-1 font-['Space_Mono'] text-[11px] flex items-center gap-1 shadow-[2px_2px_0px_#0a0514] text-[#f3eeff] font-bold">
-                {pixelText(t.badges.nightOwl)}
+                {t.badges.nightOwl}
               </span>
             </div>
 
@@ -327,14 +423,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <div className="lg:col-span-7 space-y-6">
             <div>
               <div className="flex items-center gap-2 text-[#f6c833] font-['Space_Mono'] text-xs font-bold">
-                <PixelIcon className="text-[18px]">token</PixelIcon>
-                {pixelText(t.playerName)}
+                <span className="material-symbols-outlined text-[18px]">token</span>
+                {t.playerName}
               </div>
               <h1 className="text-2xl md:text-3xl font-['Space_Grotesk'] text-[#f6c833] arcade-title-shadow mt-1 font-extrabold">
-                {pixelText(t.welcomeTitle)}
+                {t.welcomeTitle}
               </h1>
               <p className="font-['Space_Mono'] text-sm text-[#f3eeff] mt-2 leading-relaxed">
-                {pixelText(t.bio)}
+                {t.bio}
               </p>
             </div>
 
@@ -343,45 +439,48 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <div>
                 <div className="flex justify-between items-center mb-1 font-['Space_Mono'] text-xs text-[#f3eeff] font-bold">
                   <span className="flex items-center gap-1.5 text-[#26c281]">
-                    <PixelIcon className="text-[16px]">favorite</PixelIcon>
-                    {pixelText(t.hpLabel)}
+                    <span className="material-symbols-outlined text-[16px]">favorite</span>
+                    {t.hpLabel}
                   </span>
                   <span className="text-[#26c281]">50 / 100</span>
                 </div>
                 <div className="h-4 w-full bg-[#120a21] border-[2px] border-[#5a3696] p-0.5">
-                  <div className="h-full bg-[#26c281] shadow-[0_0_8px_rgba(38,194,129,0.6)] transition-all duration-500" style={{
-                  width: '50%'
-                }} />
+                  <div
+                    className="h-full bg-[#26c281] shadow-[0_0_8px_rgba(38,194,129,0.6)] transition-all duration-500"
+                    style={{ width: '50%' }}
+                  />
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-1 font-['Space_Mono'] text-xs text-[#f3eeff] font-bold">
                   <span className="flex items-center gap-1.5 text-[#d93876]">
-                    <PixelIcon className="text-[16px]">coffee</PixelIcon>
-                    {pixelText(t.mpLabel)}
+                    <span className="material-symbols-outlined text-[16px]">coffee</span>
+                    {t.mpLabel}
                   </span>
                   <span className="text-[#d93876]">33 / 100</span>
                 </div>
                 <div className="h-4 w-full bg-[#120a21] border-[2px] border-[#5a3696] p-0.5">
-                  <div className="h-full bg-[#d93876] shadow-[0_0_8px_rgba(217,56,118,0.6)] transition-all duration-500" style={{
-                  width: '33%'
-                }} />
+                  <div
+                    className="h-full bg-[#d93876] shadow-[0_0_8px_rgba(217,56,118,0.6)] transition-all duration-500"
+                    style={{ width: '33%' }}
+                  />
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-1 font-['Space_Mono'] text-xs text-[#f3eeff] font-bold">
                   <span className="flex items-center gap-1.5 text-[#f6c833]">
-                    <PixelIcon className="text-[16px]">military_tech</PixelIcon>
-                    {pixelText(t.expLabel)}
+                    <span className="material-symbols-outlined text-[16px]">military_tech</span>
+                    {t.expLabel}
                   </span>
                   <span className="text-[#f6c833]">2,500 / 10,000 XP</span>
                 </div>
                 <div className="h-4 w-full bg-[#120a21] border-[2px] border-[#5a3696] p-0.5">
-                  <div className="h-full bg-[#f6c833] shadow-[0_0_8px_rgba(246,200,51,0.6)] transition-all duration-500" style={{
-                  width: '25%'
-                }} />
+                  <div
+                    className="h-full bg-[#f6c833] shadow-[0_0_8px_rgba(246,200,51,0.6)] transition-all duration-500"
+                    style={{ width: '25%' }}
+                  />
                 </div>
               </div>
             </div>
@@ -389,45 +488,69 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Action Buttons & Fast Travel Cartridges */}
             <div className="space-y-4 pt-1">
               <div className="flex flex-wrap items-center gap-3">
-                <button type="button" id="heroContactBtn" onClick={onOpenContact} className="bg-[#f6c833] hover:bg-[#e0b020] text-[#120a21] border-[3px] border-black px-6 py-3 pixel-btn-action flex items-center gap-2 font-bold tracking-wider uppercase cursor-pointer shadow-[0_0_16px_rgba(246,200,51,0.4)] hover:scale-105 transition-all font-['Space_Mono'] text-xs sm:text-sm">
-                  <PixelIcon className="text-[20px]">
+                <button
+                  type="button"
+                  id="heroContactBtn"
+                  onClick={onOpenContact}
+                  className="bg-[#f6c833] hover:bg-[#e0b020] text-[#120a21] border-[3px] border-black px-6 py-3 pixel-btn-action flex items-center gap-2 font-bold tracking-wider uppercase cursor-pointer shadow-[0_0_16px_rgba(246,200,51,0.4)] hover:scale-105 transition-all font-['Space_Mono'] text-xs sm:text-sm"
+                >
+                  <span className="material-symbols-outlined text-[20px]">
                     forward_to_inbox
-                  </PixelIcon>
-                  <span>{pixelText(t.directContactBtn)}</span>
+                  </span>
+                  <span>{t.directContactBtn}</span>
                 </button>
               </div>
 
               {/* Fast Section Jump Cartridges */}
-              {pixelText(onNavigateSection && <div className="bg-[#191127] border-[2px] border-[#5a3696] p-3 pixel-box-sm">
+              {onNavigateSection && (
+                <div className="bg-[#191127] border-[2px] border-[#5a3696] p-3 pixel-box-sm">
                   <div className="text-[11px] font-['Space_Mono'] text-[#45b7d1] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <PixelIcon className="text-sm">rocket_launch</PixelIcon>
-                    <span>{pixelText(isVi ? 'CỔNG DỊCH CHUYỂN MÔ ĐUN (WARP TO SECTION):' : 'WARP TO SECTION:')}</span>
+                    <span className="material-symbols-outlined text-sm">rocket_launch</span>
+                    <span>{isVi ? 'CỔNG DỊCH CHUYỂN MÔ ĐUN (WARP TO SECTION):' : 'WARP TO SECTION:'}</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button type="button" onClick={() => onNavigateSection('skills')} className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]">
-                      <PixelIcon className="text-[#f6c833] text-sm">auto_fix_high</PixelIcon>
-                      <span className="truncate">{pixelText(isVi ? '🎒 Kỹ Năng' : '🎒 Skills')}</span>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('skills')}
+                      className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]"
+                    >
+                      <span className="material-symbols-outlined text-[#f6c833] text-sm">auto_fix_high</span>
+                      <span className="truncate">{isVi ? '🎒 Kỹ Năng' : '🎒 Skills'}</span>
                     </button>
 
-                    <button type="button" onClick={() => onNavigateSection('questbook')} className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]">
-                      <PixelIcon className="text-[#45b7d1] text-sm">menu_book</PixelIcon>
-                      <span className="truncate">{pixelText(isVi ? '📜 Questbook' : '📜 Questbook')}</span>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('questbook')}
+                      className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]"
+                    >
+                      <span className="material-symbols-outlined text-[#45b7d1] text-sm">menu_book</span>
+                      <span className="truncate">{isVi ? '📜 Questbook' : '📜 Questbook'}</span>
                     </button>
 
-                    <button type="button" onClick={() => onNavigateSection('hobbies')} className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]">
-                      <PixelIcon className="text-[#d93876] text-sm">headphones</PixelIcon>
-                      <span className="truncate">{pixelText(isVi ? '🎧 Sở Thích' : '🎧 Hobbies')}</span>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('hobbies')}
+                      className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]"
+                    >
+                      <span className="material-symbols-outlined text-[#d93876] text-sm">headphones</span>
+                      <span className="truncate">{isVi ? '🎧 Sở Thích' : '🎧 Hobbies'}</span>
                     </button>
 
-                    <button type="button" onClick={() => onNavigateSection('polaroid')} className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]">
-                      <PixelIcon className="text-[#26c281] text-sm">photo_camera</PixelIcon>
-                      <span className="truncate">{pixelText(isVi ? '📸 Bảng Ghim' : '📸 Pinboard')}</span>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('polaroid')}
+                      className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]"
+                    >
+                      <span className="material-symbols-outlined text-[#26c281] text-sm">photo_camera</span>
+                      <span className="truncate">{isVi ? '📸 Bảng Ghim' : '📸 Pinboard'}</span>
                     </button>
                   </div>
-                </div>)}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };

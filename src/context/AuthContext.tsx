@@ -1,6 +1,12 @@
-import { PixelIcon, pixelText } from "../components/PixelIcon";
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { checkAdminStatus, loginAdmin, logoutAdmin, changeAdminPassword, getStoredAdminToken } from '../utils/portfolioApi';
+import {
+  checkAdminStatus,
+  loginAdmin,
+  logoutAdmin,
+  changeAdminPassword,
+  getStoredAdminToken,
+} from '../utils/portfolioApi';
+
 interface AuthContextType {
   isAdmin: boolean;
   isChecking: boolean;
@@ -13,33 +19,27 @@ interface AuthContextType {
   closePasswordModal: () => void;
   openMessagesModal: () => void;
   closeMessagesModal: () => void;
-  login: (password: string) => Promise<{
-    success: boolean;
-    error?: string;
-  }>;
+  login: (password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<{
-    success: boolean;
-    error?: string;
-  }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
 }
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-export const AuthProvider: React.FC<{
-  children: React.ReactNode;
-}> = ({
-  children
-}) => {
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState<boolean>(() => Boolean(getStoredAdminToken()));
   const [isChecking, setIsChecking] = useState<boolean>(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isMessagesModalOpen, setIsMessagesModalOpen] = useState(false);
+
   useEffect(() => {
-    checkAdminStatus().then(res => {
+    checkAdminStatus().then((res) => {
       setIsAdmin(res.isAdmin);
       setIsChecking(false);
     });
   }, []);
+
   const login = async (password: string) => {
     const res = await loginAdmin(password);
     if (res.success) {
@@ -48,32 +48,40 @@ export const AuthProvider: React.FC<{
     }
     return res;
   };
+
   const logout = async () => {
     await logoutAdmin();
     setIsAdmin(false);
   };
+
   const changePassword = async (currentPassword: string, newPassword: string) => {
     return changeAdminPassword(currentPassword, newPassword);
   };
-  return <AuthContext.Provider value={{
-    isAdmin,
-    isChecking,
-    isLoginModalOpen,
-    isPasswordModalOpen,
-    isMessagesModalOpen,
-    openLoginModal: () => setIsLoginModalOpen(true),
-    closeLoginModal: () => setIsLoginModalOpen(false),
-    openPasswordModal: () => setIsPasswordModalOpen(true),
-    closePasswordModal: () => setIsPasswordModalOpen(false),
-    openMessagesModal: () => setIsMessagesModalOpen(true),
-    closeMessagesModal: () => setIsMessagesModalOpen(false),
-    login,
-    logout,
-    changePassword
-  }}>
-      {pixelText(children)}
-    </AuthContext.Provider>;
+
+  return (
+    <AuthContext.Provider
+      value={{
+        isAdmin,
+        isChecking,
+        isLoginModalOpen,
+        isPasswordModalOpen,
+        isMessagesModalOpen,
+        openLoginModal: () => setIsLoginModalOpen(true),
+        closeLoginModal: () => setIsLoginModalOpen(false),
+        openPasswordModal: () => setIsPasswordModalOpen(true),
+        closePasswordModal: () => setIsPasswordModalOpen(false),
+        openMessagesModal: () => setIsMessagesModalOpen(true),
+        closeMessagesModal: () => setIsMessagesModalOpen(false),
+        login,
+        logout,
+        changePassword,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
