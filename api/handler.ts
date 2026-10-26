@@ -151,6 +151,10 @@ export default async function handler(req: any, res: any) {
       await mutate('portfolio/messages.json', [], messages => [entry, ...messages].slice(0, 200));
       return res.json({ success: true, delivery: 'stored', id: entry.id });
     }
+    if (route === 'diary' && req.method === 'GET') {
+      const { data } = await readJson('portfolio/diary.json', null);
+      return res.json({ success: true, diary: data });
+    }
     const auth = await readAuth();
     if (route === 'auth/login' && req.method === 'POST') {
       const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0];
@@ -179,6 +183,17 @@ export default async function handler(req: any, res: any) {
       const hash = pbkdf2Sync(body.newPassword.trim(), salt, iterations, 64, 'sha512').toString('hex');
       await mutate(AUTH, auth, current => ({ hash, salt, iterations, version: (current.version || 0) + 1 }));
       return res.json({ success: true });
+    }
+    if (route === 'diary' && req.method === 'POST') {
+      const moods = ['sparkles', 'coffee', 'computer', 'moon', 'heart', 'confetti'];
+      if (!moods.includes(body.mood) || typeof body.note !== 'string' || body.note.length > 500 ||
+          typeof body.learning !== 'string' || body.learning.length > 120 ||
+          typeof body.song !== 'string' || body.song.length > 120) {
+        return res.status(400).json({ success: false, error: 'Nội dung nhật ký không hợp lệ.' });
+      }
+      const diary = { mood: body.mood, note: body.note.trim(), learning: body.learning.trim(), song: body.song.trim(), updatedAt: Date.now() };
+      await mutate('portfolio/diary.json', null, () => diary);
+      return res.json({ success: true, diary });
     }
     if (route === 'contact/messages' && req.method === 'GET') {
       const { data } = await readJson('portfolio/messages.json', []);

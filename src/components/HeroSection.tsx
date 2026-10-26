@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AVATAR_URL } from '../data/portfolioData';
 import { spawnPixelBurst } from '../utils/fx';
 import { ChibiViewer } from './ChibiViewer';
+import { MiniDiary } from './MiniDiary';
 import { fetchPortfolioState, saveServerAvatar, resetServerAvatar } from '../utils/portfolioApi';
 import { compressImage } from '../utils/imageCompressor';
 import { useAuth } from '../context/AuthContext';
@@ -319,6 +320,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
             {/* Chibi Controller */}
             <ChibiViewer />
+            <MiniDiary />
           </div>
 
           {/* Stats & Bio Column */}
