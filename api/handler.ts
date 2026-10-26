@@ -87,7 +87,7 @@ async function saveImage(value: string) {
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
-  const route = new URL(req.url, 'https://portfolio.local').pathname.replace(/^\/api\/?/, '');
+  const route = String(req.query?.route || new URL(req.url, 'https://portfolio.local').pathname.replace(/^\/api\/?/, ''));
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
   try {
     if (req.method === 'GET' && route === 'health') return res.json({ status: 'ok', storage: Boolean(process.env.BLOB_READ_WRITE_TOKEN) });
