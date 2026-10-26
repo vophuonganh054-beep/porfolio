@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "MY WORLD — Phương Anh",
+  "short_name": "MY WORLD",
+  "lang": "vi",
+  "description": "Thế giới nhỏ của Phương Anh — portfolio, nhân vật và trò chơi.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#120a21",
+  "theme_color": "#120a21",
+  "icons": [
+    {
+      "src": "/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
