@@ -23,15 +23,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
   const { language, isVi } = useLanguage();
   const t = TRANSLATIONS[language].hero;
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [avatarSrc, setAvatarSrc] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(AVATAR_STORAGE_KEY);
-      if (saved && saved.trim()) return saved;
-    } catch {
-      // ignore storage error
-    }
-    return AVATAR_URL;
-  });
+  const [avatarSrc, setAvatarSrc] = useState<string>(AVATAR_URL);
   const [avatarNotice, setAvatarNotice] = useState<string | null>(null);
   const [isSavingServer, setIsSavingServer] = useState(false);
   const [showUrlDialog, setShowUrlDialog] = useState(false);
@@ -89,12 +81,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
 
     try {
       const compressedBase64 = await compressImage(file, 800, 800, 0.88);
-      setAvatarSrc(compressedBase64);
-      try {
-        localStorage.setItem(AVATAR_STORAGE_KEY, compressedBase64);
-      } catch {
-        // ignore quota
-      }
 
       const res = await saveServerAvatar(compressedBase64);
       setIsSavingServer(false);
@@ -138,19 +124,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
 
     setIsSavingServer(true);
     setAvatarNotice('Đang lưu link ảnh lên máy chủ... ⏳');
-    setAvatarSrc(cleanUrl);
     setShowUrlDialog(false);
     setCustomUrlInput('');
 
-    try {
-      localStorage.setItem(AVATAR_STORAGE_KEY, cleanUrl);
-    } catch {
-      // ignore
-    }
 
     const res = await saveServerAvatar(cleanUrl);
     setIsSavingServer(false);
     if (res.success) {
+      setAvatarSrc(res.avatarUrl || cleanUrl);
       setAvatarNotice('✨ ĐÃ LƯU ẢNH LÊN MÁY CHỦ! Người khác bấm link sẽ thấy ngay ảnh mới này!');
     } else {
       setAvatarNotice('⚠️ Chưa lưu được ảnh lên máy chủ. Người khác chưa thấy thay đổi.');
@@ -166,15 +147,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
       return;
     }
     setIsSavingServer(true);
-    setAvatarSrc(AVATAR_URL);
-    try {
-      localStorage.removeItem(AVATAR_STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-    await resetServerAvatar();
+    const saved = await resetServerAvatar();
     setIsSavingServer(false);
-    setAvatarNotice('Đã khôi phục ảnh đại diện ban đầu!');
+    if (saved) {
+      setAvatarSrc(AVATAR_URL);
+      localStorage.removeItem(AVATAR_STORAGE_KEY);
+    }
+    setAvatarNotice(saved ? 'Đã khôi phục ảnh đại diện ban đầu!' : '⚠️ Chưa lưu được thay đổi lên máy chủ.');
     setTimeout(() => setAvatarNotice(null), 3000);
   };
 

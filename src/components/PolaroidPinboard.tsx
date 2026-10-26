@@ -38,20 +38,7 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
   const [editingPhoto, setEditingPhoto] = useState<PolaroidItem | null>(null);
   const [pendingUpload, setPendingUpload] = useState<PendingUploadItem | null>(null);
 
-  const [polaroidList, setPolaroidList] = useState<PolaroidItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved !== null) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed;
-        }
-      }
-    } catch {
-      // ignore JSON error
-    }
-    return [];
-  });
+  const [polaroidList, setPolaroidList] = useState<PolaroidItem[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
