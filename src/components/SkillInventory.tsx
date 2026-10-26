@@ -59,8 +59,8 @@ export const SkillInventory: React.FC = () => {
                     <div className="w-9 h-9 flex items-center justify-center">
                       <img
                         src={CANVA_LOGO_URL}
-                        alt="Canva Logo"
-                        className="w-9 h-9 object-contain drop-shadow-[0_0_6px_rgba(0,196,204,0.5)]"
+                        alt="Canva Design"
+                        className="w-8 h-8 rounded-full object-contain shadow-[0_0_8px_rgba(0,196,204,0.7)] hover:scale-105 transition-transform"
                       />
                     </div>
                   ) : (
@@ -103,8 +103,8 @@ export const SkillInventory: React.FC = () => {
                 {selectedSkill.customType === 'canva' ? (
                   <img
                     src={CANVA_DIALOG_LOGO_URL}
-                    alt="Canva"
-                    className="w-6 h-6 object-contain"
+                    alt="Canva Design"
+                    className="w-6 h-6 rounded-full object-contain shadow-[0_0_6px_rgba(0,196,204,0.7)]"
                   />
                 ) : (
                   <span className={`material-symbols-outlined ${selectedSkill.iconColor}`}>

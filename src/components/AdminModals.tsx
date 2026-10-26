@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { playRetroBeep } from '../utils/audioSynth';
 import { useLanguage } from '../context/LanguageContext';
 import { TRANSLATIONS } from '../utils/translations';
+import { getStoredAdminToken } from '../utils/portfolioApi';
 
 export const AdminModals: React.FC = () => {
-  const { language } = useLanguage();
+  const { language, isVi } = useLanguage();
   const t = TRANSLATIONS[language].admin;
 
   const {
@@ -15,6 +16,8 @@ export const AdminModals: React.FC = () => {
     isPasswordModalOpen,
     closePasswordModal,
     changePassword,
+    isMessagesModalOpen,
+    closeMessagesModal,
   } = useAuth();
 
   // Login state
@@ -30,6 +33,28 @@ export const AdminModals: React.FC = () => {
   const [changeError, setChangeError] = useState<string | null>(null);
   const [changeSuccess, setChangeSuccess] = useState<string | null>(null);
   const [isChangingPass, setIsChangingPass] = useState(false);
+
+  // Pigeon Messages state
+  const [pigeonMessages, setPigeonMessages] = useState<any[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+
+  useEffect(() => {
+    if (isMessagesModalOpen) {
+      setIsLoadingMessages(true);
+      const token = getStoredAdminToken();
+      fetch('/api/contact/messages', {
+        headers: token ? { 'x-admin-token': token } : {},
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.messages) {
+            setPigeonMessages(data.messages);
+          }
+        })
+        .catch((err) => console.error('Error fetching pigeon messages:', err))
+        .finally(() => setIsLoadingMessages(false));
+    }
+  }, [isMessagesModalOpen]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,6 +310,118 @@ export const AdminModals: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pigeon Messages Inbox Modal */}
+      {isMessagesModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-fade-in"
+          onClick={closeMessagesModal}
+        >
+          <div
+            className="bg-[#1f1730] border-[4px] border-[#26c281] pixel-box-sm p-5 sm:p-6 w-full max-w-2xl shadow-[10px_10px_0px_#0a0514] font-['Space_Mono'] relative max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b-2 border-[#5a3696] pb-3 mb-4 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🕊️</span>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#26c281] font-['Space_Grotesk'] tracking-wider">
+                    {isVi ? 'HỘP THƯ BỒ CÂU (PIGEON INBOX)' : 'PIGEON CARRIER INBOX'}
+                  </h3>
+                  <p className="text-[10px] text-[#a798c4]">
+                    {isVi
+                      ? 'Đồng bộ tự động tới hộp thư Gmail: vophuonganh054@gmail.com'
+                      : 'Auto-synchronized to Gmail: vophuonganh054@gmail.com'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeMessagesModal}
+                className="text-[#eaddff] hover:text-[#ef4444] font-bold text-lg px-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content List */}
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+              {isLoadingMessages ? (
+                <div className="text-center py-10 text-[#f6c833] flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                  <span>{isVi ? 'Đang tải tin nhắn bồ câu...' : 'Loading messages...'}</span>
+                </div>
+              ) : pigeonMessages.length === 0 ? (
+                <div className="text-center py-12 text-[#a798c4] bg-[#120a21] border border-[#5a3696] p-6 space-y-2">
+                  <span className="text-3xl block">📭</span>
+                  <p className="text-[#f6c833] font-bold">
+                    {isVi ? 'Chưa có lời nhắn bồ câu nào!' : 'No messages yet!'}
+                  </p>
+                  <p className="text-[11px]">
+                    {isVi
+                      ? 'Khi khách gửi lời nhắn qua mục Bồ Câu Đưa Thư, thư sẽ vừa lưu tại đây vừa tự động gửi vào vophuonganh054@gmail.com.'
+                      : 'When visitors send via the Carrier Pigeon form, messages will appear here and in vophuonganh054@gmail.com.'}
+                  </p>
+                </div>
+              ) : (
+                pigeonMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className="bg-[#120a21] border-2 border-[#5a3696] hover:border-[#26c281] p-3.5 pixel-box-sm transition-all space-y-2"
+                  >
+                    <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#5a3696]/50 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[#f6c833]">{msg.senderName}</span>
+                        {msg.senderEmail && msg.senderEmail !== 'guest@myworld.app' && (
+                          <span className="text-[10px] text-[#45b7d1] bg-[#1f1730] px-2 py-0.5 border border-[#5a3696]">
+                            {msg.senderEmail}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-[#8b79a8]">
+                        {new Date(msg.createdAt).toLocaleString(isVi ? 'vi-VN' : 'en-US')}
+                      </span>
+                    </div>
+
+                    <p className="text-[#f3eeff] whitespace-pre-wrap leading-relaxed">
+                      {msg.message}
+                    </p>
+
+                    {msg.senderEmail && msg.senderEmail !== 'guest@myworld.app' && (
+                      <div className="pt-1.5 flex justify-end">
+                        <a
+                          href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(msg.senderEmail)}&su=${encodeURIComponent(`[MY WORLD] Phản hồi lời nhắn bồ câu của ${msg.senderName}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 bg-[#26c281] hover:bg-[#1fa86f] text-[#120a21] font-bold text-[10px] flex items-center gap-1 shadow-[2px_2px_0px_#000]"
+                        >
+                          <span className="material-symbols-outlined text-xs">reply</span>
+                          <span>{isVi ? 'Phản hồi qua Gmail' : 'Reply via Gmail'}</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-[#5a3696] flex items-center justify-between shrink-0">
+              <span className="text-[10px] text-[#8b79a8]">
+                {pigeonMessages.length} {isVi ? 'thư đã lưu' : 'messages stored'}
+              </span>
+              <button
+                type="button"
+                onClick={closeMessagesModal}
+                className="px-4 py-1.5 bg-[#2e263f] hover:bg-[#3d3254] text-[#d1c5ad] text-xs font-bold border border-black cursor-pointer"
+              >
+                {t.closeBtn}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -66,3 +66,5 @@ export interface SocialLink {
   btnText: string;
   type: 'instagram' | 'facebook' | 'telegram';
 }
+
+export type SectionTab = 'overview' | 'skills' | 'questbook' | 'hobbies' | 'polaroid' | 'contact';

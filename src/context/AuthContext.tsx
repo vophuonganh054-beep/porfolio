@@ -12,10 +12,13 @@ interface AuthContextType {
   isChecking: boolean;
   isLoginModalOpen: boolean;
   isPasswordModalOpen: boolean;
+  isMessagesModalOpen: boolean;
   openLoginModal: () => void;
   closeLoginModal: () => void;
   openPasswordModal: () => void;
   closePasswordModal: () => void;
+  openMessagesModal: () => void;
+  closeMessagesModal: () => void;
   login: (password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
@@ -28,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isChecking, setIsChecking] = useState<boolean>(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isMessagesModalOpen, setIsMessagesModalOpen] = useState(false);
 
   useEffect(() => {
     checkAdminStatus().then((res) => {
@@ -61,10 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isChecking,
         isLoginModalOpen,
         isPasswordModalOpen,
+        isMessagesModalOpen,
         openLoginModal: () => setIsLoginModalOpen(true),
         closeLoginModal: () => setIsLoginModalOpen(false),
         openPasswordModal: () => setIsPasswordModalOpen(true),
         closePasswordModal: () => setIsPasswordModalOpen(false),
+        openMessagesModal: () => setIsMessagesModalOpen(true),
+        closeMessagesModal: () => setIsMessagesModalOpen(false),
         login,
         logout,
         changePassword,

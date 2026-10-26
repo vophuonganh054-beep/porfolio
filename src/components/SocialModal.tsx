@@ -139,7 +139,7 @@ export const SocialModal: React.FC<SocialModalProps> = ({ isOpen, onClose }) => 
                   </div>
 
                   <span
-                    className={`inline-flex items-center gap-1 ${link.btnBg} text-white font-['Space_Mono'] text-xs font-bold px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_#0a0514] group-hover:scale-105 transition-all`}
+                    className={`inline-flex items-center gap-1.5 ${link.btnBg} text-white font-['Space_Mono'] text-xs font-extrabold px-3.5 py-1.5 border-2 border-black shadow-[3px_3px_0px_#0a0514] group-hover:scale-105 group-hover:brightness-110 transition-all uppercase tracking-wider shrink-0`}
                   >
                     <span>{btnLabel}</span>
                     <span className="material-symbols-outlined text-[14px]">north_east</span>

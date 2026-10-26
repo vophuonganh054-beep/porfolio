@@ -4,12 +4,17 @@ import { ChibiDirection } from '../types';
 import { spawnPixelBurst } from '../utils/fx';
 import { useLanguage } from '../context/LanguageContext';
 import { getBilingualChibiData, TRANSLATIONS } from '../utils/translations';
+import { StatusEffectOverlay, StatusEffectType, STATUS_EFFECT_CONFIGS } from './StatusEffectOverlay';
 
 const DIR_KEYS: ChibiDirection[] = ['front', 'left', 'back', 'right'];
+const STATUS_EFFECTS: StatusEffectType[] = ['shield', 'invincible', 'regen', 'berserk'];
 
 export const ChibiViewer: React.FC = () => {
   const [direction, setDirection] = useState<ChibiDirection>('front');
   const [isAutoTurning, setIsAutoTurning] = useState(false);
+  const [currentEffect, setCurrentEffect] = useState<StatusEffectType>('shield');
+  const [isEffectActive, setIsEffectActive] = useState(false);
+  const [effectKey, setEffectKey] = useState(0);
   const { language, isVi } = useLanguage();
   const t = TRANSLATIONS[language].chibi;
 
@@ -34,9 +39,24 @@ export const ChibiViewer: React.FC = () => {
     }
   };
 
-  const handleCycleDirection = (e: React.MouseEvent) => {
+  const triggerStatusEffect = (forcedType?: StatusEffectType, e?: React.MouseEvent) => {
+    if (e) {
+      spawnPixelBurst(e.clientX, e.clientY, 10);
+    }
+    const nextType = forcedType || (isEffectActive 
+      ? STATUS_EFFECTS[(STATUS_EFFECTS.indexOf(currentEffect) + 1) % STATUS_EFFECTS.length]
+      : currentEffect);
+
+    setCurrentEffect(nextType);
+    setIsEffectActive(true);
+    setEffectKey((k) => k + 1);
+  };
+
+  const handleCycleDirectionAndEffect = (e: React.MouseEvent) => {
     const nextIdx = (DIR_KEYS.indexOf(direction) + 1) % DIR_KEYS.length;
     handleSelectDirection(DIR_KEYS[nextIdx], e);
+    // Triggers the temporary Status Effect visual overlay!
+    triggerStatusEffect(undefined, e);
   };
 
   const handleToggleAutoTurn = (e: React.MouseEvent) => {
@@ -59,17 +79,26 @@ export const ChibiViewer: React.FC = () => {
 
       {/* Main Chibi Stage + D-Pad Controls */}
       <div className="w-full grid grid-cols-12 gap-3 items-center bg-[#120a21]/80 border border-[#5a3696]/60 p-2.5">
-        {/* Left Stage */}
-        <div className="col-span-7 flex flex-col items-center justify-center relative min-h-[140px]">
-          <div className="mb-1 bg-[#2e263f] border-2 border-[#f6c833] px-2 py-0.5 text-[10px] font-['Space_Mono'] text-[#f6c833] rounded shadow-[2px_2px_0px_#0a0514] font-bold text-center select-none">
+        {/* Left Stage: Character Sprite with Status Effect Overlay */}
+        <div className="col-span-7 flex flex-col items-center justify-center relative min-h-[148px]">
+          <div className="mb-1 bg-[#2e263f] border-2 border-[#f6c833] px-2 py-0.5 text-[10px] font-['Space_Mono'] text-[#f6c833] rounded shadow-[2px_2px_0px_#0a0514] font-bold text-center select-none max-w-full truncate">
             {currentInfo.quote}
           </div>
 
           <div
-            className="relative cursor-pointer group flex flex-col items-center select-none mt-1"
-            onClick={handleCycleDirection}
-            title={t.touchHint}
+            className="relative cursor-pointer group flex flex-col items-center select-none mt-1 p-1 hover:scale-105 active:scale-95 transition-transform"
+            onClick={handleCycleDirectionAndEffect}
+            title={isVi ? "Nhấp nhân vật để kích hoạt Khiên Pixel / Hào Quang Bất Tử!" : "Click character to trigger Pixel Shield / Invincibility Glow!"}
           >
+            {/* Status Effect Visual Overlay wrapping the character sprite */}
+            <StatusEffectOverlay
+              key={effectKey}
+              active={isEffectActive}
+              effect={currentEffect}
+              duration={3200}
+              onComplete={() => setIsEffectActive(false)}
+            />
+
             <div className="w-[96px] h-[112px] relative overflow-hidden flex items-center justify-center">
               <img
                 src={currentInfo.img}
@@ -79,8 +108,15 @@ export const ChibiViewer: React.FC = () => {
             </div>
             <div className="w-16 h-2 bg-black/60 rounded-full mx-auto -mt-1 blur-[0.5px]" />
           </div>
-          <span className="text-[9px] font-['Space_Mono'] text-[#d1c5ad] mt-1">
-            {t.touchHint}
+
+          <span className="text-[9px] font-['Space_Mono'] text-[#f6c833] mt-1 text-center font-bold">
+            {isEffectActive ? (
+              <span className="text-[#45b7d1] animate-pulse">
+                ⚡ {STATUS_EFFECT_CONFIGS[currentEffect].name} ACTIVE!
+              </span>
+            ) : (
+              <span>✨ {isVi ? 'Chạm nhân vật: Bật Khiên / Hào Quang' : 'Click sprite: Shield / Star Glow'}</span>
+            )}
           </span>
         </div>
 
@@ -153,6 +189,71 @@ export const ChibiViewer: React.FC = () => {
               <span>{isAutoTurning ? t.autoTurnOn : t.autoTurnOff}</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Status Effect Quick Trigger Bar */}
+      <div className="w-full mt-2 pt-1.5 border-t border-[#5a3696]/60 flex flex-col gap-1">
+        <div className="flex items-center justify-between text-[8px] font-['Space_Mono'] font-bold text-[#f6c833] uppercase">
+          <span>{isVi ? '⚡ HIỆU ỨNG TRẠNG THÁI (STATUS EFFECT):' : '⚡ STATUS EFFECT OVERLAY:'}</span>
+          <span className="text-[#45b7d1]">{STATUS_EFFECT_CONFIGS[currentEffect].name}</span>
+        </div>
+        <div className="grid grid-cols-4 gap-1">
+          <button
+            type="button"
+            onClick={(e) => triggerStatusEffect('shield', e)}
+            className={`py-1 px-1 text-[8px] font-['Space_Mono'] font-bold border transition-all cursor-pointer flex items-center justify-center gap-0.5 ${
+              isEffectActive && currentEffect === 'shield'
+                ? 'bg-[#45b7d1] text-[#120a21] border-black scale-105 shadow-[0_0_8px_#45b7d1]'
+                : 'bg-[#1f1730] text-[#45b7d1] border-[#45b7d1]/50 hover:border-[#45b7d1]'
+            }`}
+            title={isVi ? "Kích hoạt Lá Chắn Pixel (+999 DEF)" : "Trigger Pixel Shield"}
+          >
+            <span>🛡️</span>
+            <span>SHIELD</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => triggerStatusEffect('invincible', e)}
+            className={`py-1 px-1 text-[8px] font-['Space_Mono'] font-bold border transition-all cursor-pointer flex items-center justify-center gap-0.5 ${
+              isEffectActive && currentEffect === 'invincible'
+                ? 'bg-[#f6c833] text-[#120a21] border-black scale-105 shadow-[0_0_8px_#f6c833]'
+                : 'bg-[#1f1730] text-[#f6c833] border-[#f6c833]/50 hover:border-[#f6c833]'
+            }`}
+            title={isVi ? "Kích hoạt Hào Quang Bất Tử (Star Glow)" : "Trigger Invincibility Star Glow"}
+          >
+            <span>★</span>
+            <span>GLOW</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => triggerStatusEffect('regen', e)}
+            className={`py-1 px-1 text-[8px] font-['Space_Mono'] font-bold border transition-all cursor-pointer flex items-center justify-center gap-0.5 ${
+              isEffectActive && currentEffect === 'regen'
+                ? 'bg-[#26c281] text-[#120a21] border-black scale-105 shadow-[0_0_8px_#26c281]'
+                : 'bg-[#1f1730] text-[#26c281] border-[#26c281]/50 hover:border-[#26c281]'
+            }`}
+            title={isVi ? "Kích hoạt Hồi Phục Sinh Mệnh (+100 HP)" : "Trigger Vitality Regen"}
+          >
+            <span>💖</span>
+            <span>REGEN</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => triggerStatusEffect('berserk', e)}
+            className={`py-1 px-1 text-[8px] font-['Space_Mono'] font-bold border transition-all cursor-pointer flex items-center justify-center gap-0.5 ${
+              isEffectActive && currentEffect === 'berserk'
+                ? 'bg-[#d93876] text-white border-black scale-105 shadow-[0_0_8px_#d93876]'
+                : 'bg-[#1f1730] text-[#d93876] border-[#d93876]/50 hover:border-[#d93876]'
+            }`}
+            title={isVi ? "Kích hoạt Bùng Nổ Ma Lực (Speed x2)" : "Trigger Mana Burst"}
+          >
+            <span>⚡</span>
+            <span>BURST</span>
+          </button>
         </div>
       </div>
 

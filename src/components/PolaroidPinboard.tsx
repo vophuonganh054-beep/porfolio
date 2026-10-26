@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PolaroidItem } from '../types';
 import { spawnPixelBurst } from '../utils/fx';
-import { fetchPortfolioState, saveServerPhotos, uploadServerPhoto } from '../utils/portfolioApi';
+import { fetchPortfolioState, saveServerPhotos, uploadServerPhoto, getStoredAdminToken } from '../utils/portfolioApi';
+import { compressImage } from '../utils/imageCompressor';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { TRANSLATIONS } from '../utils/translations';
@@ -39,11 +40,6 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
 
   const [polaroidList, setPolaroidList] = useState<PolaroidItem[]>(() => {
     try {
-      // Purge all legacy storage keys with old AI photos
-      ['v1', 'v2', 'v3', 'v4', 'v5', 'v6'].forEach((ver) => {
-        localStorage.removeItem(`pa_custom_polaroids_${ver}`);
-      });
-
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved !== null) {
         const parsed = JSON.parse(saved);
@@ -60,21 +56,87 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
 
-  // Tải danh sách ảnh từ server để bất kỳ ai mở link cũng thấy ảnh mới
+  // Tải danh sách ảnh từ server và đồng bộ 2 chiều (bảo đảm tất cả máy khác & IP mới đều thấy ảnh)
   useEffect(() => {
-    fetchPortfolioState().then((state) => {
-      if (state && Array.isArray(state.photos)) {
-        setPolaroidList(state.photos);
-        try {
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.photos));
-        } catch {
-          // ignore
-        }
-      }
-    });
-  }, []);
+    let isMounted = true;
 
-  // Save changes to localStorage AND to the server for all visitors
+    const syncState = async () => {
+      try {
+        const serverState = await fetchPortfolioState();
+        if (!isMounted) return;
+
+        // Trường hợp 1: Máy chủ đã có ảnh => Máy chủ là chân lý tuyệt đối cho mọi máy khách
+        if (serverState && Array.isArray(serverState.photos) && serverState.photos.length > 0) {
+          setPolaroidList(serverState.photos);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serverState.photos));
+          } catch {
+            // ignore
+          }
+        }
+        // Trường hợp 2: Máy chủ chưa có ảnh (hoặc vừa được khởi động), nhưng máy này đã có ảnh trong localStorage
+        // (tức là trước đó Admin đã ghim ảnh trên máy này nhưng chưa lưu lên server):
+        // => Tự động ĐẨY TOÀN BỘ ẢNH LÊN MÁY CHỦ ngay lập tức để tất cả máy khác mở link đều thấy!
+        else {
+          const localSaved = localStorage.getItem(LOCAL_STORAGE_KEY);
+          if (localSaved) {
+            try {
+              const parsed = JSON.parse(localSaved);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setPolaroidList(parsed);
+                // Nếu là Admin hoặc có phiên đăng nhập, đồng bộ ngay lên server
+                const token = getStoredAdminToken();
+                if (token || isAdmin) {
+                  console.log('[Polaroid] Pushing local photos to server for all devices...');
+                  const pushRes = await saveServerPhotos(parsed);
+                  if (pushRes.success && pushRes.photos) {
+                    setPolaroidList(pushRes.photos);
+                  }
+                }
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[Polaroid] Error during mount sync:', err);
+      }
+    };
+
+    syncState();
+
+    // Định kỳ kiểm tra máy chủ mỗi 10 giây:
+    // Giúp các thiết bị khác hoặc các tab đang mở tự động cập nhật ngay khi chủ nhân ghim ảnh mới
+    const interval = setInterval(() => {
+      fetchPortfolioState().then((serverState) => {
+        if (!isMounted) return;
+        if (serverState && Array.isArray(serverState.photos)) {
+          setPolaroidList((prev) => {
+            // So sánh nếu có sự thay đổi thì mới render lại
+            const prevStr = JSON.stringify(prev);
+            const serverStr = JSON.stringify(serverState.photos);
+            if (prevStr !== serverStr && serverState.photos!.length > 0) {
+              try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, serverStr);
+              } catch {
+                // ignore
+              }
+              return serverState.photos as PolaroidItem[];
+            }
+            return prev;
+          });
+        }
+      }).catch(() => {});
+    }, 10000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isAdmin]);
+
+  // Lưu thay đổi lên máy chủ (cho tất cả IP/thiết bị khác) và localStorage
   const updateList = async (newList: PolaroidItem[]) => {
     setPolaroidList(newList);
     try {
@@ -83,7 +145,12 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
       // ignore storage quota error
     }
 
-    setUploadNotice('⏳ Đang lưu đồng bộ lên máy chủ cho tất cả người xem...');
+    setUploadNotice(
+      isVi
+        ? '⏳ Đang đồng bộ ảnh lên máy chủ cho TẤT CẢ người xem...'
+        : '⏳ Syncing photos to server for ALL visitors...'
+    );
+
     const res = await saveServerPhotos(newList);
     if (res.success) {
       if (res.photos) {
@@ -94,51 +161,97 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
           // ignore
         }
       }
-      setUploadNotice('✅ Đã lưu lên máy chủ thành công! Bất kỳ ai mở link cũng sẽ thấy ảnh này.');
-      setTimeout(() => setUploadNotice(null), 4000);
+      setUploadNotice(
+        isVi
+          ? '✅ Đã lưu lên máy chủ thành công! Tất cả máy khác & IP mới mở link đều sẽ thấy ảnh này.'
+          : '✅ Saved to server successfully! All devices & new IPs will see these photos.'
+      );
+      setTimeout(() => setUploadNotice(null), 4500);
     } else {
-      setUploadNotice(`⚠️ Chưa lưu được lên máy chủ: ${res.error || 'Vui lòng đăng nhập Admin'}`);
-      setTimeout(() => setUploadNotice(null), 5000);
+      if (res.isViewer || !isAdmin) {
+        setUploadNotice(
+          isVi
+            ? '⚠️ Chưa lưu được lên máy chủ: Bạn cần đăng nhập Admin để đồng bộ cho tất cả mọi người!'
+            : '⚠️ Not saved to server: Please login as Admin to sync for everyone!'
+        );
+        openLoginModal();
+      } else {
+        setUploadNotice(
+          isVi
+            ? `⚠️ Chưa lưu được lên máy chủ: ${res.error || 'Vui lòng kiểm tra lại kết nối'}`
+            : `⚠️ Could not save to server: ${res.error || 'Check connection'}`
+        );
+      }
+      setTimeout(() => setUploadNotice(null), 6000);
     }
   };
 
   const handleClearAll = async () => {
     if (!isAdmin) {
-      setUploadNotice('🛡️ Chỉ Admin mới có quyền xóa toàn bộ ảnh!');
+      setUploadNotice(
+        isVi
+          ? '🛡️ Chỉ Admin mới có quyền xóa toàn bộ ảnh!'
+          : '🛡️ Only Admin has permission to clear photos!'
+      );
       setTimeout(() => setUploadNotice(null), 3000);
       openLoginModal();
       return;
     }
     await updateList([]);
-    setUploadNotice('Đã làm trống toàn bộ ảnh trên bảng!');
+    setUploadNotice(isVi ? 'Đã làm trống toàn bộ ảnh trên bảng!' : 'Cleared all photos from board!');
     setTimeout(() => setUploadNotice(null), 3000);
   };
 
-  // Helper to process uploaded file (convert to base64 data URL and open edit preview modal)
-  const processImageFile = (file: File) => {
+  // Nén ảnh tự động về kích thước chuẩn và mở modal xem trước
+  const processImageFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('Vui lòng chỉ chọn tệp hình ảnh (.jpg, .png, .webp, v.v.)!');
+      alert(
+        isVi
+          ? 'Vui lòng chỉ chọn tệp hình ảnh (.jpg, .png, .webp, v.v.)!'
+          : 'Please select an image file (.jpg, .png, .webp, etc.)!'
+      );
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Url = event.target?.result as string;
-      if (!base64Url) return;
+    setUploadNotice(
+      isVi
+        ? '⏳ Đang tối ưu hóa dung lượng ảnh để tải siêu nhanh...'
+        : '⏳ Optimizing image for fast upload...'
+    );
 
+    try {
+      // Tự động nén ảnh xuống chuẩn max 1200px chất lượng cao (~100KB), chống lỗi quá tải payload
+      const compressedDataUrl = await compressImage(file, 1200, 1200, 0.85);
       const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
       setPendingUpload({
         id: `custom-polaroid-${Date.now()}`,
-        image: base64Url,
-        title: cleanFileName || 'Kỷ niệm mới',
+        image: compressedDataUrl,
+        title: cleanFileName || (isVi ? 'Kỷ niệm mới' : 'New Memory'),
         tags: '#myphoto #memory #original',
         badge: '★ ORIGINAL',
       });
-    };
-    reader.readAsDataURL(file);
+      setUploadNotice(null);
+    } catch (err) {
+      console.warn('Fallback file reader on image upload:', err);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Url = event.target?.result as string;
+        if (!base64Url) return;
+        const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
+        setPendingUpload({
+          id: `custom-polaroid-${Date.now()}`,
+          image: base64Url,
+          title: cleanFileName || (isVi ? 'Kỷ niệm mới' : 'New Memory'),
+          tags: '#myphoto #memory #original',
+          badge: '★ ORIGINAL',
+        });
+      };
+      reader.readAsDataURL(file);
+      setUploadNotice(null);
+    }
   };
 
-  // Confirm posting the pending upload with custom title
+  // Xác nhận ghim ảnh lên máy chủ
   const handleConfirmPendingUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pendingUpload) return;
@@ -151,9 +264,13 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
 
     let finalImageUrl = pendingUpload.image;
 
-    // Upload base64 to server static file
+    // Tải tệp ảnh vật lý lên thư mục tĩnh máy chủ (/uploads/)
     if (finalImageUrl.startsWith('data:image/')) {
-      setUploadNotice('⏳ Đang tải tệp ảnh lên máy chủ...');
+      setUploadNotice(
+        isVi
+          ? '⏳ Đang lưu tệp ảnh lên máy chủ vĩnh viễn...'
+          : '⏳ Saving image permanently to server...'
+      );
       const uploadRes = await uploadServerPhoto(finalImageUrl, 'polaroid');
       if (uploadRes.success && uploadRes.url) {
         finalImageUrl = uploadRes.url;
@@ -162,7 +279,7 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
 
     const newPolaroid: PolaroidItem = {
       id: pendingUpload.id,
-      title: pendingUpload.title.trim() || 'Khoảnh khắc kỷ niệm 📷',
+      title: pendingUpload.title.trim() || (isVi ? 'Khoảnh khắc kỷ niệm 📷' : 'Memorable Moment 📷'),
       image: finalImageUrl,
       tags: parsedTags.length > 0 ? parsedTags : ['#myphoto', '#memory'],
       badge: pendingUpload.badge.trim() || '★ ORIGINAL',
@@ -176,14 +293,16 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
     await updateList(updated);
   };
 
-  // Save changes when editing an existing photo title
+  // Lưu chỉnh sửa tiêu đề/thông tin ảnh
   const handleSaveEditPhoto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPhoto) return;
 
     let finalImageUrl = editingPhoto.image;
     if (finalImageUrl.startsWith('data:image/')) {
-      setUploadNotice('⏳ Đang tải ảnh mới lên máy chủ...');
+      setUploadNotice(
+        isVi ? '⏳ Đang tải ảnh mới lên máy chủ...' : '⏳ Uploading updated photo to server...'
+      );
       const uploadRes = await uploadServerPhoto(finalImageUrl, 'polaroid_edit');
       if (uploadRes.success && uploadRes.url) {
         finalImageUrl = uploadRes.url;
@@ -572,7 +691,12 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
                 <span className="material-symbols-outlined text-[#45b7d1] text-[18px]">
                   alternate_email
                 </span>
-                <span className="text-[#f3eeff]">vp.anh11101506@gmail.com</span>
+                <a
+                  href="mailto:vophuonganh054@gmail.com"
+                  className="text-[#f3eeff] hover:text-[#f6c833] hover:underline transition-colors font-bold"
+                >
+                  vophuonganh054@gmail.com
+                </a>
               </div>
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[#f6c833] text-[18px]">
@@ -900,17 +1024,22 @@ export const PolaroidPinboard: React.FC<PolaroidPinboardProps> = ({ onOpenContac
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            const newBase64 = ev.target?.result as string;
-                            if (newBase64) {
-                              setEditingPhoto({ ...editingPhoto, image: newBase64 });
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                          try {
+                            const compressed = await compressImage(file, 1200, 1200, 0.85);
+                            setEditingPhoto({ ...editingPhoto, image: compressed });
+                          } catch {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              const newBase64 = ev.target?.result as string;
+                              if (newBase64) {
+                                setEditingPhoto({ ...editingPhoto, image: newBase64 });
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
                         }
                         e.target.value = '';
                       }}

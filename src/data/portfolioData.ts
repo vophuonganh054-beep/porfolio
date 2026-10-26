@@ -4,9 +4,9 @@ export const COSMIC_BG_URL = 'https://lh3.googleusercontent.com/aida-public/AB6A
 
 export const AVATAR_URL = 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_moK1XRHSd3dUCn_Ii8qMTUd75G5KhJFN9HHSb_tLx_K87O6yb4rLvhFDwjHOtyepduVBNHp0sCVnManyhtePsmbtwqfe_PwpqK2-THVia5L5nhWSJXG-Xl6ev1gtCfcybLm3siZhxXBiZtTCdSE0XWPTJY-w23uQ_JiB7hf4ie1yS_zWtaIk9r3CyoKVDsnJtWkycjkn5dFQSPWdNUkwOPq2I8KMuVsgDdTflA86XWMaAvIt-t2QHvSDAsYvt7CCGfY';
 
-export const CANVA_LOGO_URL = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAKpc8nvqreCP-_U_rUWcYnTmMBKSGwGeiO7t4bCQ9G81EloeRwN5Rw_hQbW4LlvZ_rwH0BayGCmGCPWTNkr4RKD0dKI2SDtt3QhDxSepW10-rMntA0sIYHn6IxB4pR_HvvxAMD0vRG4ZycBMmjTsYGaHZKT3ugKDTJdP_RQW7s3vaDj0gpnvGofE0FJYQMfSEAwCjez0YLZq5Fn31yEMLzAuQOOgWfdllvvItJBtFLma44tgTndPOZ0Dr6znJnY2Yyhu4';
-
-export const CANVA_DIALOG_LOGO_URL = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCUfI6f9af2wmK1rDiNaM2s5DD01yTwXZmrgLGOLJVOKjlC1nU942f3y1YncwDySgnOIagOMskFQ_V2l7r0Gm4_OaKNYXTUzgWf5g6fJKk6MgCLtmHKzsgBIGllK2UZTMhr5Th4vsM8EhTBp8SHb_v_YtnhwbX8rIBDrYgPyit4yuS52qIYWk4vsCnunmwfP1a_w8-VU6WmqnSiIDu1NdAoJTVp-yaUTWy2-CW9oKfFqTy7hXA1kpHJLFMof4CvAscP_SU';
+// Official Canva brand vector asset
+export const CANVA_LOGO_URL = '/assets/canva-logo.svg';
+export const CANVA_DIALOG_LOGO_URL = '/assets/canva-logo.svg';
 
 export const CHIBI_DATA: Record<ChibiDirection, ChibiInfo> = {
   front: {
@@ -116,14 +116,14 @@ export const SKILL_ITEMS: SkillItem[] = [
   },
   {
     id: 'canva',
-    title: 'Thiết Kế Canva (Visual Design)',
-    shortTitle: 'Canva',
-    level: 'Cấp độ: Thành thạo (Lv.90)',
-    badge: 'SOFT SKILL',
-    badgeBg: 'bg-[#45b7d1] text-[#120a21]',
-    desc: 'Làm chủ bộ công cụ thiết kế đồ họa Canva: thiết kế ấn phẩm truyền thông, bài thuyết trình, infographic và visual content bắt mắt, chuyên nghiệp.',
+    title: 'Kỹ Năng Thiết Kế Canva (Canva Graphic Design)',
+    shortTitle: 'Canva Design',
+    level: 'Cấp độ: Sáng tạo cao cấp (Lv.95)',
+    badge: 'CANVA PRO',
+    badgeBg: 'bg-[#00c4cc] text-[#120a21]',
+    desc: 'Sử dụng thành thạo Canva để sáng tạo slide thuyết trình chuyên nghiệp, infographic, poster, ấn phẩm truyền thông mạng xã hội, banner sự kiện và visual storytelling.',
     iconName: 'palette',
-    iconColor: 'text-[#45b7d1]',
+    iconColor: 'text-[#00c4cc]',
     customType: 'canva',
   },
 ];
@@ -163,10 +163,10 @@ export const QUEST_ITEMS: QuestItem[] = [
     tag: 'QUEST #01 • HOÀN THÀNH',
     status: 'CLEARED',
     statusColor: 'bg-[#26c281] text-[#120a21]',
-    title: 'E-Commerce Fundamentals',
-    role: 'E-Commerce Certification',
+    title: 'Dự Án Học Thuật E-Commerce',
+    role: 'Chứng Chỉ Học Thuật / Academic Coursework',
     roleColor: 'text-[#26c281]',
-    desc: 'Hoàn thành xuất sắc khóa học E-Commerce: xây dựng mô hình sàn thương mại điện tử, thiết kế landing page bán lẻ và tối ưu quy trình thanh toán số.',
+    desc: 'Hoàn thành xuất sắc khóa học nghiên cứu E-Commerce: tìm hiểu mô hình cấu trúc sàn thương mại điện tử, thiết kế giao diện bán lẻ và khảo sát quy trình thanh toán số.',
     reward: '+2,200 XP • Foundation Scroll',
     rewardColor: 'text-[#f6c833]',
     borderColor: 'hover:border-[#26c281]',
@@ -192,7 +192,7 @@ export const SOCIAL_LINKS: SocialLink[] = [
     url: 'https://www.instagram.com/sevv.ills/',
     iconColor: 'bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]',
     badgeBg: 'bg-[#d93876] text-white',
-    btnBg: 'bg-[#d93876] hover:bg-[#ef4444]',
+    btnBg: 'bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] hover:brightness-110',
     btnText: 'MỞ TRANG',
     type: 'instagram',
   },
@@ -200,10 +200,10 @@ export const SOCIAL_LINKS: SocialLink[] = [
     name: 'Facebook',
     handle: 'Phương Anh',
     subtitle: 'CONNECT & CHAT',
-    url: 'https://www.facebook.com/phuong.anhh.896572/',
+    url: 'https://www.facebook.com/vophanh1506',
     iconColor: 'bg-[#1877f2]',
-    badgeBg: 'bg-[#45b7d1] text-[#120a21]',
-    btnBg: 'bg-[#45b7d1] hover:bg-[#38a0b8]',
+    badgeBg: 'bg-[#1877f2] text-white',
+    btnBg: 'bg-[#1877f2] hover:bg-[#166fe5]',
     btnText: 'MỞ TRANG',
     type: 'facebook',
   },
@@ -213,8 +213,8 @@ export const SOCIAL_LINKS: SocialLink[] = [
     subtitle: 'DIRECT MESSAGE',
     url: 'https://t.me/sevvills',
     iconColor: 'bg-[#229ed9]',
-    badgeBg: 'bg-[#26c281] text-[#120a21]',
-    btnBg: 'bg-[#26c281] hover:bg-[#1fa16a]',
+    badgeBg: 'bg-[#229ed9] text-white',
+    btnBg: 'bg-[#229ed9] hover:bg-[#1c8ec4]',
     btnText: 'MỞ TRANG',
     type: 'telegram',
   },

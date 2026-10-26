@@ -3,18 +3,22 @@ import { AVATAR_URL } from '../data/portfolioData';
 import { spawnPixelBurst } from '../utils/fx';
 import { ChibiViewer } from './ChibiViewer';
 import { fetchPortfolioState, saveServerAvatar, resetServerAvatar } from '../utils/portfolioApi';
+import { compressImage } from '../utils/imageCompressor';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { TRANSLATIONS } from '../utils/translations';
 
+import { SectionTab } from '../types';
+
 interface HeroSectionProps {
   onOpenContact: (e?: React.MouseEvent) => void;
   onSendLove?: (e?: React.MouseEvent) => void;
+  onNavigateSection?: (section: SectionTab) => void;
 }
 
 const AVATAR_STORAGE_KEY = 'pa_custom_avatar_v2';
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavigateSection }) => {
   const { isAdmin, openLoginModal } = useAuth();
   const { language, isVi } = useLanguage();
   const t = TRANSLATIONS[language].hero;
@@ -35,8 +39,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact }) => {
 
   // Tải ảnh mới nhất từ máy chủ để bất kỳ ai mở link cũng thấy ảnh mới của bạn
   useEffect(() => {
+    let isMounted = true;
     fetchPortfolioState().then((state) => {
-      if (state.avatarUrl) {
+      if (isMounted && state.avatarUrl) {
         setAvatarSrc(state.avatarUrl);
         try {
           localStorage.setItem(AVATAR_STORAGE_KEY, state.avatarUrl);
@@ -45,11 +50,29 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact }) => {
         }
       }
     });
+
+    const interval = setInterval(() => {
+      fetchPortfolioState().then((state) => {
+        if (isMounted && state.avatarUrl && state.avatarUrl !== avatarSrc) {
+          setAvatarSrc(state.avatarUrl);
+          try {
+            localStorage.setItem(AVATAR_STORAGE_KEY, state.avatarUrl);
+          } catch {
+            // ignore
+          }
+        }
+      }).catch(() => {});
+    }, 15000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const [isAvatarDragOver, setIsAvatarDragOver] = useState(false);
 
-  const processAvatarFile = (file: File) => {
+  const processAvatarFile = async (file: File) => {
     if (!isAdmin) {
       setAvatarNotice('🛡️ Bạn đang ở chế độ Người xem (Viewer). Chỉ Admin (Phương Anh) mới có quyền đổi ảnh!');
       openLoginModal();
@@ -62,36 +85,37 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact }) => {
     }
 
     setIsSavingServer(true);
-    setAvatarNotice('Đang lưu ảnh thật lên máy chủ (không chỉnh sửa AI)... ⏳');
+    setAvatarNotice('Đang tối ưu và lưu ảnh lên máy chủ... ⏳');
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        setAvatarSrc(base64);
-        try {
-          localStorage.setItem(AVATAR_STORAGE_KEY, base64);
-        } catch {
-          // ignore quota
-        }
-
-        const res = await saveServerAvatar(base64);
-        setIsSavingServer(false);
-        if (res.success && res.avatarUrl) {
-          setAvatarSrc(res.avatarUrl);
-          try {
-            localStorage.setItem(AVATAR_STORAGE_KEY, res.avatarUrl);
-          } catch {
-            // ignore
-          }
-          setAvatarNotice('✨ ĐÃ CẬP NHẬT ẢNH THẬT THÀNH CÔNG! Bất kỳ ai mở link này đều sẽ thấy ảnh mới của bạn!');
-        } else {
-          setAvatarNotice('✨ Đã cập nhật ảnh đại diện thành công!');
-        }
-        setTimeout(() => setAvatarNotice(null), 5000);
+    try {
+      const compressedBase64 = await compressImage(file, 800, 800, 0.88);
+      setAvatarSrc(compressedBase64);
+      try {
+        localStorage.setItem(AVATAR_STORAGE_KEY, compressedBase64);
+      } catch {
+        // ignore quota
       }
-    };
-    reader.readAsDataURL(file);
+
+      const res = await saveServerAvatar(compressedBase64);
+      setIsSavingServer(false);
+      if (res.success && res.avatarUrl) {
+        setAvatarSrc(res.avatarUrl);
+        try {
+          localStorage.setItem(AVATAR_STORAGE_KEY, res.avatarUrl);
+        } catch {
+          // ignore
+        }
+        setAvatarNotice('✨ ĐÃ CẬP NHẬT ẢNH THÀNH CÔNG! Bất kỳ ai mở link này đều sẽ thấy ảnh mới của bạn!');
+      } else {
+        setAvatarNotice('✨ Đã cập nhật ảnh đại diện!');
+      }
+      setTimeout(() => setAvatarNotice(null), 5000);
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      setIsSavingServer(false);
+      setAvatarNotice('⚠️ Lỗi khi xử lý ảnh đại diện');
+      setTimeout(() => setAvatarNotice(null), 4000);
+    }
   };
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -469,19 +493,68 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact }) => {
               </div>
             </div>
 
-            {/* Action Buttons: Liên Hệ Trực Tiếp */}
-            <div className="flex flex-wrap gap-4 pt-2">
-              <button
-                type="button"
-                id="heroContactBtn"
-                onClick={onOpenContact}
-                className="bg-[#f6c833] hover:bg-[#e0b020] text-[#120a21] border-[3px] border-black px-7 py-3.5 pixel-btn-action flex items-center gap-2.5 font-bold tracking-wider uppercase cursor-pointer shadow-[0_0_16px_rgba(246,200,51,0.4)] hover:scale-105 transition-all font-['Space_Mono'] text-sm"
-              >
-                <span className="material-symbols-outlined text-[22px]">
-                  forward_to_inbox
-                </span>
-                <span>{t.directContactBtn}</span>
-              </button>
+            {/* Action Buttons & Fast Travel Cartridges */}
+            <div className="space-y-4 pt-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  id="heroContactBtn"
+                  onClick={onOpenContact}
+                  className="bg-[#f6c833] hover:bg-[#e0b020] text-[#120a21] border-[3px] border-black px-6 py-3 pixel-btn-action flex items-center gap-2 font-bold tracking-wider uppercase cursor-pointer shadow-[0_0_16px_rgba(246,200,51,0.4)] hover:scale-105 transition-all font-['Space_Mono'] text-xs sm:text-sm"
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    forward_to_inbox
+                  </span>
+                  <span>{t.directContactBtn}</span>
+                </button>
+              </div>
+
+              {/* Fast Section Jump Cartridges */}
+              {onNavigateSection && (
+                <div className="bg-[#191127] border-[2px] border-[#5a3696] p-3 pixel-box-sm">
+                  <div className="text-[11px] font-['Space_Mono'] text-[#45b7d1] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm">rocket_launch</span>
+                    <span>{isVi ? 'CỔNG DỊCH CHUYỂN MÔ ĐUN (WARP TO SECTION):' : 'WARP TO SECTION:'}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('skills')}
+                      className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]"
+                    >
+                      <span className="material-symbols-outlined text-[#f6c833] text-sm">auto_fix_high</span>
+                      <span className="truncate">{isVi ? '🎒 Kỹ Năng' : '🎒 Skills'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('questbook')}
+                      className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]"
+                    >
+                      <span className="material-symbols-outlined text-[#45b7d1] text-sm">menu_book</span>
+                      <span className="truncate">{isVi ? '📜 Questbook' : '📜 Questbook'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('hobbies')}
+                      className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]"
+                    >
+                      <span className="material-symbols-outlined text-[#d93876] text-sm">headphones</span>
+                      <span className="truncate">{isVi ? '🎧 Sở Thích' : '🎧 Hobbies'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('polaroid')}
+                      className="bg-[#231b34] hover:bg-[#2d2244] border-2 border-[#5a3696] hover:border-[#f6c833] p-2 text-left font-['Space_Mono'] text-[11px] font-bold text-[#eaddff] hover:text-[#f6c833] flex items-center gap-1.5 cursor-pointer transition-all shadow-[2px_2px_0px_#0a0514]"
+                    >
+                      <span className="material-symbols-outlined text-[#26c281] text-sm">photo_camera</span>
+                      <span className="truncate">{isVi ? '📸 Bảng Ghim' : '📸 Pinboard'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

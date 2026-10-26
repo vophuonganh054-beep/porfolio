@@ -167,7 +167,7 @@ export async function saveServerAvatar(avatarUrlOrBase64: string): Promise<{ suc
   }
 }
 
-export async function saveServerPhotos(photos: any[]): Promise<{ success: boolean; photos?: any[]; error?: string }> {
+export async function saveServerPhotos(photos: any[]): Promise<{ success: boolean; photos?: any[]; error?: string; isViewer?: boolean }> {
   try {
     const token = getStoredAdminToken();
     const res = await fetch('/api/portfolio/photos', {
@@ -176,11 +176,15 @@ export async function saveServerPhotos(photos: any[]): Promise<{ success: boolea
         'Content-Type': 'application/json',
         'x-admin-token': token || '',
       },
-      body: JSON.stringify({ photos }),
+      body: JSON.stringify({ photos, adminToken: token }),
     });
     const data = await res.json();
     if (!res.ok) {
-      return { success: false, error: data.error || 'Chỉ Admin mới có quyền chỉnh sửa!' };
+      return {
+        success: false,
+        error: data.error || 'Chỉ Admin mới có quyền chỉnh sửa!',
+        isViewer: res.status === 403 || data.isViewer,
+      };
     }
     return { success: true, photos: data.photos };
   } catch (err: any) {
@@ -189,7 +193,7 @@ export async function saveServerPhotos(photos: any[]): Promise<{ success: boolea
   }
 }
 
-export async function uploadServerPhoto(imageBase64: string, prefix = 'polaroid'): Promise<{ success: boolean; url?: string; error?: string }> {
+export async function uploadServerPhoto(imageBase64: string, prefix = 'polaroid'): Promise<{ success: boolean; url?: string; error?: string; isViewer?: boolean }> {
   try {
     const token = getStoredAdminToken();
     const res = await fetch('/api/portfolio/upload-photo', {
@@ -198,11 +202,15 @@ export async function uploadServerPhoto(imageBase64: string, prefix = 'polaroid'
         'Content-Type': 'application/json',
         'x-admin-token': token || '',
       },
-      body: JSON.stringify({ imageBase64, prefix }),
+      body: JSON.stringify({ imageBase64, prefix, adminToken: token }),
     });
     const data = await res.json();
     if (!res.ok) {
-      return { success: false, error: data.error || 'Không thể tải ảnh lên máy chủ!' };
+      return {
+        success: false,
+        error: data.error || 'Không thể tải ảnh lên máy chủ!',
+        isViewer: res.status === 403 || data.isViewer,
+      };
     }
     return { success: true, url: data.url };
   } catch (err: any) {
