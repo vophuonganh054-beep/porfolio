@@ -40,26 +40,6 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
       if (!response.ok || !result.success) {
         throw new Error(result.error || (isVi ? 'Chưa gửi được thư. Vui lòng thử lại.' : 'Could not send your message. Please try again.'));
       }
-      // FormSubmit's AJAX endpoint receives the website origin from the browser.
-      // Archive once on our server, then send exactly one email.
-      const delivery = await fetch('https://formsubmit.co/ajax/vophuonganh054@gmail.com', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        signal: AbortSignal.timeout(25000),
-        body: JSON.stringify({
-          name: senderName.trim() || 'MY WORLD Guest',
-          ...(senderEmail.trim() ? { email: senderEmail.trim(), _replyto: senderEmail.trim() } : {}),
-          message: senderMessage.trim(),
-          _subject: '[MY WORLD] Thư bồ câu từ ' + (senderName.trim() || 'Khách ghé thăm'),
-          _template: 'table', _captcha: 'false',
-        }),
-      });
-      const receipt = await delivery.json();
-      if (!delivery.ok || !(receipt.success === true || receipt.success === 'true')) {
-        throw new Error(/activat/i.test(String(receipt.message || ''))
-          ? 'Chủ website cần bấm Activate Form trong email FormSubmit.'
-          : (isVi ? 'Thư đã lưu nhưng chưa chuyển được tới Gmail. Vui lòng thử lại sau.' : 'Your message was saved, but email delivery failed. Please try again.'));
-      }
       setSentSuccess(true);
       playRetroBeep('coin');
       spawnPixelBurst(window.innerWidth / 2, window.innerHeight / 2, 20);
@@ -220,7 +200,10 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
 
             <form onSubmit={handleSendMessage} className="space-y-3.5">
               <div className="hidden" aria-hidden="true"><input name="website" tabIndex={-1} autoComplete="off" value={website} onChange={e => setWebsite(e.target.value)} /></div>
-              {sendError && <div role="alert" className="border-2 border-red-400 bg-[#120a21] p-3 text-xs text-red-300">{sendError}</div>}
+              {sendError && <div role="alert" className="border-2 border-red-400 bg-[#120a21] p-3 text-xs text-red-300">
+                <p>{sendError}</p>
+                <a className="inline-block mt-2 underline text-[#f6c833]" href={'mailto:vophuonganh054@gmail.com?subject=' + encodeURIComponent('[MY WORLD] Thư từ ' + (senderName.trim() || 'Khách ghé thăm')) + '&body=' + encodeURIComponent(senderMessage + (senderEmail ? '\\n\\nEmail phản hồi: ' + senderEmail : ''))}>{isVi ? 'Mở ứng dụng email để gửi thư này' : 'Open email app to send this message'}</a>
+              </div>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-['Space_Mono'] font-bold text-[#d1c5ad] mb-1">
@@ -270,8 +253,8 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
                     <span className="text-base animate-bounce">🕊️</span>
                     <span>
                       {isVi
-                        ? 'Thư bồ câu đã gửi thành công tới hộp thư Gmail: vophuonganh054@gmail.com!'
-                        : 'Pigeon has delivered your message directly to vophuonganh054@gmail.com!'}
+                        ? 'Dịch vụ email đã nhận thư gửi tới vophuonganh054@gmail.com!'
+                        : 'Email service accepted your message for vophuonganh054@gmail.com!'}
                     </span>
                   </div>
                   <p className="text-[11px] text-[#a798c4]">

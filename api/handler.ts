@@ -156,7 +156,31 @@ export default async function handler(req: any, res: any) {
         message: body.message.trim(), createdAt: Date.now(), delivery: 'stored',
       };
       await mutate('portfolio/messages.json', [], messages => [entry, ...messages].slice(0, 200));
-      return res.json({ success: true, delivery: 'stored', id: entry.id });
+      try {
+        const delivery = await fetch('https://formsubmit.co/ajax/vophuonganh054@gmail.com', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json', Referer: 'https://myworld-sunny.vercel.app/' },
+          signal: AbortSignal.timeout(15000),
+          body: JSON.stringify({
+            name: entry.senderName, message: entry.message,
+            ...(email ? { email, _replyto: email } : {}),
+            _subject: '[MY WORLD] Thư bồ câu từ ' + entry.senderName,
+            _template: 'table', _captcha: 'false', _url: 'https://myworld-sunny.vercel.app/',
+          }),
+        });
+        const receipt = await delivery.json();
+        if (!delivery.ok || !(receipt.success === true || receipt.success === 'true')) {
+          const activation = /activat|actived/i.test(String(receipt.message || ''));
+          return res.status(502).json({ success: false, saved: true, id: entry.id,
+            error: activation ? 'Thư đã lưu. Chủ web cần mở email FormSubmit và bấm Activate Form cho link myworld-sunny.vercel.app.'
+              : 'Thư đã lưu trong hộp thư của web, nhưng dịch vụ chuyển tới Gmail chưa nhận thư. Bạn có thể dùng nút gửi bằng ứng dụng email bên dưới.' });
+        }
+        return res.json({ success: true, delivery: 'submitted', id: entry.id });
+      } catch {
+        console.warn('Pigeon: message archived; email service unavailable');
+        return res.status(502).json({ success: false, saved: true, id: entry.id,
+          error: 'Thư đã lưu trong hộp thư của web. Dịch vụ gửi Gmail đang phản hồi chậm; bạn có thể gửi bằng ứng dụng email bên dưới.' });
+      }
     }
     if (route === 'diary' && req.method === 'GET') {
       const { data } = await readJson('portfolio/diary.json', null);
