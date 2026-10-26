@@ -29,7 +29,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenContact, activeSection = '
   };
 
   return (
-    <header className="bg-[#1f1730]/95 backdrop-blur-md border-b-[3px] border-[#5a3696] shadow-[0px_4px_0px_#0a0514] sticky top-0 z-50">
+    <header className="desktop-topbar bg-[#1f1730]/95 backdrop-blur-md border-b-[3px] border-[#5a3696] shadow-[0px_4px_0px_#0a0514] sticky top-0 z-50">
       <div className="w-full px-4 sm:px-6 py-2.5 max-w-[1200px] mx-auto flex items-center justify-between">
         {/* Brand Logo */}
         <button
@@ -226,7 +226,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenContact, activeSection = '
       </div>
 
       {/* Mobile Screen Horizontal Tab Strip */}
-      <div className="md:hidden flex items-center gap-1.5 overflow-x-auto px-3 py-1.5 bg-[#140c24] border-t border-[#5a3696]/70 no-scrollbar">
+      <div className="desktop-mobile-tabs md:hidden flex items-center gap-1.5 overflow-x-auto px-3 py-1.5 bg-[#140c24] border-t border-[#5a3696]/70 no-scrollbar">
         <button
           type="button"
           onClick={() => onSelectSection?.('overview')}
@@ -297,4 +297,5 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenContact, activeSection = '
     </header>
   );
 };
+
 

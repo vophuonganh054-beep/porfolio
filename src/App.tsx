@@ -69,7 +69,7 @@ function MainAppContent() {
   };
 
   return (
-    <div className="crt-scanlines text-[#eaddff] font-['Space_Mono'] antialiased min-h-screen flex flex-col relative overflow-x-hidden bg-[#0b0717]">
+    <div className="desktop-shell crt-scanlines text-[#eaddff] font-['Space_Mono'] antialiased min-h-screen flex flex-col relative overflow-x-hidden bg-[#0b0717]">
       {/* Full-Page Pixel Cosmic Space Background */}
       <div
         className="fixed inset-0 w-full h-full bg-cover bg-center opacity-45 pointer-events-none z-0 pixelated-render"
@@ -90,7 +90,8 @@ function MainAppContent() {
       />
 
       {/* Main Canvas Content */}
-      <main className="max-w-[1200px] w-full mx-auto px-4 md:px-6 py-6 relative z-10 flex-1">
+      <main className="desktop-workspace max-w-[1200px] w-full mx-auto px-4 md:px-6 py-6 relative z-10 flex-1">
+        <div className="mobile-desktop-label" aria-hidden="true"><span>▦ SUNNY’S DESKTOP</span><span>● ONLINE</span></div>
         <InstallApp />
         <VisitorJourney journey={journey} onNavigate={handleSelectSection} />
         {/* Navigation Breadcrumb / Quick Back to Home */}
@@ -120,7 +121,7 @@ function MainAppContent() {
 
         {/* 1. OVERVIEW MODE: Condense the site with Hero + Quick Hub Cards */}
         {activeSection === 'overview' && (
-          <div className="space-y-8 animate-fadeIn">
+          <div className="overview-windows space-y-8 animate-fadeIn">
             {/* Hero Profile with Chibi and Interactive Status Effect Overlay */}
             <HeroSection
               onOpenContact={handleOpenContact}
@@ -130,7 +131,7 @@ function MainAppContent() {
             <DuckGame />
 
             {/* Streamlined Activity Hub / Module Cards Preview */}
-            <div className="bg-[#191127]/90 border-[3px] border-[#5a3696] p-4 sm:p-6 pixel-box">
+            <div className="desktop-hub bg-[#191127]/90 border-[3px] border-[#5a3696] p-4 sm:p-6 pixel-box">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-5 border-b-2 border-dashed border-[#5a3696] gap-3">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#f6c833] text-xl">
@@ -146,7 +147,7 @@ function MainAppContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="desktop-hub-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Module 1: Skill Inventory */}
                 <div className="bg-[#231b34] border-[2px] border-[#5a3696] hover:border-[#f6c833] p-4 pixel-box-sm flex flex-col justify-between transition-all group">
                   <div>
@@ -331,4 +332,5 @@ export default function App() {
     </AuthProvider>
   );
 }
+
 

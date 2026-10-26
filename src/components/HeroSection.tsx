@@ -183,7 +183,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
 
       {/* Stage Badge */}
       <div
-        className="mb-4 inline-flex items-center gap-2 bg-[#1f1730]/90 border-[3px] border-[#5a3696] px-4 py-2 pixel-box-sm cursor-pointer"
+        className="profile-stage mb-4 inline-flex items-center gap-2 bg-[#1f1730]/90 border-[3px] border-[#5a3696] px-4 py-2 pixel-box-sm cursor-pointer"
         onClick={handleStageClick}
       >
         <span className="w-3 h-3 bg-[#26c281] border border-black inline-block animate-ping" />
@@ -200,9 +200,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
       )}
 
       {/* Main Profile Box */}
-      <div className="bg-[#1f1730]/95 backdrop-blur-sm border-[4px] border-[#6c3fb5] pixel-box-lg p-6 md:p-8 relative overflow-hidden shadow-[6px_6px_0px_#0a0514]">
+      <div className="profile-window bg-[#1f1730]/95 backdrop-blur-sm border-[4px] border-[#6c3fb5] pixel-box-lg p-6 md:p-8 relative overflow-hidden shadow-[6px_6px_0px_#0a0514]">
         {/* Header Ribbon */}
-        <div className="flex flex-wrap items-center justify-between border-b-[3px] border-[#5a3696] pb-4 mb-6 gap-4 bg-[#231b34] -mx-6 -mt-6 md:-mx-8 md:-mt-8 p-4 md:px-8">
+        <div className="profile-titlebar flex flex-wrap items-center justify-between border-b-[3px] border-[#5a3696] pb-4 mb-6 gap-4 bg-[#231b34] -mx-6 -mt-6 md:-mx-8 md:-mt-8 p-4 md:px-8">
           <div className="flex items-center gap-3">
             <span className="font-['Space_Mono'] text-xs bg-[#120a21] text-[#f6c833] border border-[#5a3696] px-2.5 py-1 select-none font-bold">
               CHAR_STATUS.EXE
@@ -219,9 +219,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
         </div>
 
         {/* Main Grid: Avatar & Chibi vs Stats & Bio */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="profile-grid grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Avatar Column */}
-          <div className="lg:col-span-5 flex flex-col items-center">
+          <div className="profile-sidebar lg:col-span-5 flex flex-col items-center">
             <div
               className={`relative group ${isAdmin ? 'cursor-pointer' : 'cursor-default'}`}
               onClick={() => {
@@ -258,7 +258,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
                 LV. 19 ★
               </div>
               <div
-                className={`w-56 h-56 md:w-64 md:h-64 bg-[#2e263f] border-[4px] ${
+                className={`profile-avatar w-56 h-56 md:w-64 md:h-64 bg-[#2e263f] border-[4px] ${
                   isAvatarDragOver ? 'border-[#26c281] ring-4 ring-[#26c281]/50' : 'border-[#f6c833]'
                 } shadow-[6px_6px_0px_#0a0514] p-3 relative overflow-hidden flex items-center justify-center transition-all`}
               >
@@ -419,7 +419,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
           </div>
 
           {/* Stats & Bio Column */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="profile-main lg:col-span-7 space-y-6">
             <div>
               <div className="flex items-center gap-2 text-[#f6c833] font-['Space_Mono'] text-xs font-bold">
                 <span className="material-symbols-outlined text-[18px]">token</span>
@@ -428,13 +428,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
               <h1 className="text-2xl md:text-3xl font-['Space_Grotesk'] text-[#f6c833] arcade-title-shadow mt-1 font-extrabold">
                 {t.welcomeTitle}
               </h1>
-              <p className="font-['Space_Mono'] text-sm text-[#f3eeff] mt-2 leading-relaxed">
-                {t.bio}
-              </p>
+              <p className="hidden md:block font-['Space_Mono'] text-sm text-[#f3eeff] mt-2 leading-relaxed">{t.bio}</p>
+              <details className="profile-intro md:hidden mt-2">
+                <summary>{isVi ? 'Đọc giới thiệu' : 'About me'} <span aria-hidden="true">＋</span></summary>
+                <p>{t.bio}</p>
+              </details>
             </div>
 
             {/* RPG Stat Bars */}
-            <div className="space-y-3 bg-[#231b34] border-[3px] border-[#5a3696] p-4 pixel-box-sm">
+            <div className="profile-stats space-y-3 bg-[#231b34] border-[3px] border-[#5a3696] p-4 pixel-box-sm">
               <div>
                 <div className="flex justify-between items-center mb-1 font-['Space_Mono'] text-xs text-[#f3eeff] font-bold">
                   <span className="flex items-center gap-1.5 text-[#26c281]">
@@ -502,7 +504,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
 
               {/* Fast Section Jump Cartridges */}
               {onNavigateSection && (
-                <div className="bg-[#191127] border-[2px] border-[#5a3696] p-3 pixel-box-sm">
+                <div className="profile-shortcuts bg-[#191127] border-[2px] border-[#5a3696] p-3 pixel-box-sm">
                   <div className="text-[11px] font-['Space_Mono'] text-[#45b7d1] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-sm">rocket_launch</span>
                     <span>{isVi ? 'CỔNG DỊCH CHUYỂN MÔ ĐUN (WARP TO SECTION):' : 'WARP TO SECTION:'}</span>
@@ -553,4 +555,5 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenContact, onNavig
     </section>
   );
 };
+
 

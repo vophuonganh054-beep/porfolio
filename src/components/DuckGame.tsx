@@ -23,7 +23,7 @@ export function DuckGame() {
   const message = game.score >= 15 ? (isVi ? 'Cao thủ bắt vịt! Không chú nào thoát được bạn.' : 'Duck-catching champion! No duck can escape you.')
     : game.score >= 8 ? (isVi ? 'Nhanh tay quá! Đàn vịt đã về gần đủ rồi.' : 'Quick hands! Almost the whole flock is home.')
     : (isVi ? 'Vịt hơi lanh nha. Thử thêm ván nữa nào!' : 'These ducks are sneaky. Try another round!');
-  return <section aria-labelledby="duck-game-title" className="bg-[#191127]/95 border-[3px] border-[#5a3696] p-4 sm:p-6 pixel-box">
+  return <section aria-labelledby="duck-game-title" className="duck-window bg-[#191127]/95 border-[3px] border-[#5a3696] p-4 sm:p-6 pixel-box">
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 items-center">
       <div>
         <p className="text-[10px] font-bold tracking-widest text-[#26c281]">MINI GAME // DUCK RESCUE</p>
@@ -59,3 +59,4 @@ export function DuckGame() {
     </div>
   </section>;
 }
+

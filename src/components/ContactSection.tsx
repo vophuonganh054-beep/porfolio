@@ -60,7 +60,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
   };
 
   return (
-    <section className="bg-[#1f1730]/95 border-[4px] border-[#5a3696] p-4 sm:p-6 md:p-8 pixel-box relative overflow-hidden backdrop-blur-md">
+    <section className="contact-window bg-[#1f1730]/95 border-[4px] border-[#5a3696] p-4 sm:p-6 md:p-8 pixel-box relative overflow-hidden backdrop-blur-md">
       {/* Decorative Arcade Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-6 border-b-[3px] border-dashed border-[#5a3696] gap-4">
         <div>
@@ -294,3 +294,4 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
     </section>
   );
 };
+
