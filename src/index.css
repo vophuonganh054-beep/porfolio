@@ -327,3 +327,16 @@
   .duck-window > .grid { grid-template-columns:minmax(0,1fr) 130px; }
   .duck-window [role=group] button { min-height:36px; }
 }
+@media (max-width: 767px) {
+  .profile-sidebar > section { padding:6px; margin-top:8px; }
+  .profile-sidebar > section > div:first-child { gap:5px; padding-bottom:5px; }
+  .profile-sidebar > section > div:not(:first-child) { margin-top:7px; }
+  .profile-sidebar > section time { font-size:7px; line-height:1.5; }
+  .profile-grid:has(.profile-sidebar form) { grid-template-columns:minmax(0,1fr); }
+  .profile-sidebar:has(form) > .group { max-width:140px; }
+  .profile-sidebar form fieldset .grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .profile-sidebar form > div:last-of-type { flex-wrap:wrap; }
+  .profile-sidebar form button { min-height:34px; }
+  #guestbook > .grid > div > div:first-child:not(.grid) { margin-inline:-10px; margin-top:-10px; padding:7px 9px; margin-bottom:14px; }
+  #guestbook .grid > .group { padding:7px; border-width:2px; }
+}
