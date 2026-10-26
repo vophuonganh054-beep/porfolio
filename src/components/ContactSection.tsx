@@ -40,6 +40,26 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
       if (!response.ok || !result.success) {
         throw new Error(result.error || (isVi ? 'Chưa gửi được thư. Vui lòng thử lại.' : 'Could not send your message. Please try again.'));
       }
+      // FormSubmit's AJAX endpoint receives the website origin from the browser.
+      // Archive once on our server, then send exactly one email.
+      const delivery = await fetch('https://formsubmit.co/ajax/vophuonganh054@gmail.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        signal: AbortSignal.timeout(25000),
+        body: JSON.stringify({
+          name: senderName.trim() || 'MY WORLD Guest',
+          ...(senderEmail.trim() ? { email: senderEmail.trim(), _replyto: senderEmail.trim() } : {}),
+          message: senderMessage.trim(),
+          _subject: '[MY WORLD] Thư bồ câu từ ' + (senderName.trim() || 'Khách ghé thăm'),
+          _template: 'table', _captcha: 'false',
+        }),
+      });
+      const receipt = await delivery.json();
+      if (!delivery.ok || !(receipt.success === true || receipt.success === 'true')) {
+        throw new Error(/activat/i.test(String(receipt.message || ''))
+          ? 'Chủ website cần bấm Activate Form trong email FormSubmit.'
+          : (isVi ? 'Thư đã lưu nhưng chưa chuyển được tới Gmail. Vui lòng thử lại sau.' : 'Your message was saved, but email delivery failed. Please try again.'));
+      }
       setSentSuccess(true);
       playRetroBeep('coin');
       spawnPixelBurst(window.innerWidth / 2, window.innerHeight / 2, 20);

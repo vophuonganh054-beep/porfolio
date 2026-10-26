@@ -124,36 +124,10 @@ export default async function handler(req: any, res: any) {
         id: randomBytes(12).toString('hex'),
         senderName: String(body.name || 'Khách ghé thăm MY WORLD').trim().slice(0, 120),
         senderEmail: email,
-        message: body.message.trim(), createdAt: Date.now(), delivery: 'pending',
+        message: body.message.trim(), createdAt: Date.now(), delivery: 'stored',
       };
       await mutate('portfolio/messages.json', [], messages => [entry, ...messages].slice(0, 200));
-      let delivery = 'failed';
-      try {
-        const response = await fetch('https://formsubmit.co/ajax/vophuonganh054@gmail.com', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json', Referer: 'https://porfolio-glanz4.vercel.app/' },
-          signal: AbortSignal.timeout(15000),
-          body: JSON.stringify({
-            name: entry.senderName, ...(email ? { email, _replyto: email } : {}),
-            message: entry.message,
-            _subject: '[MY WORLD] Thư bồ câu từ ' + entry.senderName.replace(/[\r\n]/g, ' '),
-            _template: 'table', _captcha: 'false',
-            _url: 'https://porfolio-glanz4.vercel.app/',
-          }),
-        });
-        const result = await response.json();
-        const activationRequired = /activat|confirm.*email/i.test(String(result.message || ''));
-        if (activationRequired) delivery = 'activation_required';
-        else if (response.ok && (result.success === true || result.success === 'true')) delivery = 'accepted';
-      } catch (error) { console.warn('Pigeon mail delivery failed'); }
-      await mutate('portfolio/messages.json', [], messages => messages.map((message: any) => message.id === entry.id ? { ...message, delivery } : message));
-      if (delivery !== 'accepted') return res.status(502).json({
-        success: false, saved: true, delivery,
-        error: delivery === 'activation_required'
-          ? 'Thư đã được lưu. Chủ website cần xác nhận email FormSubmit để nhận thư qua Gmail.'
-          : 'Thư đã được lưu nhưng chưa chuyển được tới Gmail. Vui lòng thử lại sau.',
-      });
-      return res.json({ success: true, delivery: 'accepted', message: 'Đã gửi thư bồ câu.', id: entry.id });
+      return res.json({ success: true, delivery: 'stored', id: entry.id });
     }
     const auth = await readAuth();
     if (route === 'auth/login' && req.method === 'POST') {
