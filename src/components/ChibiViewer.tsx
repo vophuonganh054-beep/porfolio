@@ -3,17 +3,6 @@ import { useLanguage } from '../context/LanguageContext';
 
 const ACTIVITIES = [
   { id: 'idle', vi: 'Nghỉ ngơi', en: 'Idle', icon: '✨' },
-  { id: 'waving', vi: 'Vẫy tay', en: 'Waving', icon: '👋' },
-  { id: 'walking', vi: 'Đi bộ', en: 'Walking', icon: '🚶' },
-  { id: 'running', vi: 'Chạy bộ', en: 'Running', icon: '🏃' },
-  { id: 'thinking', vi: 'Suy nghĩ', en: 'Thinking', icon: '💭' },
-  { id: 'reading', vi: 'Đọc sách', en: 'Reading', icon: '📖' },
-  { id: 'computer', vi: 'Máy tính', en: 'Computer', icon: '🖥️' },
-  { id: 'laptop', vi: 'Laptop', en: 'Laptop', icon: '💻' },
-  { id: 'filing', vi: 'Xếp hồ sơ', en: 'Filing', icon: '📂' },
-  { id: 'presenting', vi: 'Thuyết trình', en: 'Presenting', icon: '📊' },
-  { id: 'drinking', vi: 'Uống nước', en: 'Drinking', icon: '🥤' },
-  { id: 'eating', vi: 'Ăn uống', en: 'Eating', icon: '🍜' },
   { id: 'sleeping', vi: 'Ngủ', en: 'Sleeping', icon: '🌙' },
   { id: 'meditating', vi: 'Thiền', en: 'Meditating', icon: '🧘' },
   { id: 'celebrating', vi: 'Ăn mừng', en: 'Celebrating', icon: '🎉' },
@@ -38,7 +27,7 @@ export const ChibiViewer: React.FC = () => {
     <div className="mt-4 w-full bg-[#231b34] border-[3px] border-[#5a3696] p-3 pixel-box-sm relative overflow-hidden">
       <div className="flex items-center justify-between gap-2 border-b border-[#5a3696]/70 pb-2 text-[10px] font-['Space_Mono'] font-bold">
         <span className="text-[#f6c833]">{isVi ? 'NHÂN VẬT CỦA PHƯƠNG ANH' : "PHUONG ANH'S CHARACTER"}</span>
-        <span className="text-[#45b7d1] shrink-0">15 GIF</span>
+        <span className="text-[#45b7d1] shrink-0">4 GIF</span>
       </div>
 
       <div className="mt-2 bg-[#120a21]/80 border border-[#5a3696]/60 flex flex-col items-center p-2">
@@ -66,7 +55,7 @@ export const ChibiViewer: React.FC = () => {
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5 mt-3" role="group" aria-label={isVi ? 'Chọn hoạt động' : 'Choose activity'}>
+      <div className="grid grid-cols-2 gap-1.5 mt-3" role="group" aria-label={isVi ? 'Chọn hoạt động' : 'Choose activity'}>
         {ACTIVITIES.map((item, index) => (
           <button
             key={item.id}
