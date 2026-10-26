@@ -1,3 +1,4 @@
+import { SyntaxiaPlayer } from './SyntaxiaPlayer';
 import React, { useState } from 'react';
 import { spawnPixelBurst } from '../utils/fx';
 import { useLanguage } from '../context/LanguageContext';
@@ -5,11 +6,12 @@ import { getBilingualHobbyItems, TRANSLATIONS } from '../utils/translations';
 import { HobbyItem } from '../types';
 
 interface HobbiesZoneProps {
+  isActive?: boolean;
   friendshipHearts?: number;
   onSendLove?: (e?: React.MouseEvent) => void;
 }
 
-export const HobbiesZone: React.FC<HobbiesZoneProps> = () => {
+export const HobbiesZone: React.FC<HobbiesZoneProps> = ({ isActive = true }) => {
   const { language, isVi } = useLanguage();
   const t = TRANSLATIONS[language].hobbies;
   const hobbyItems = getBilingualHobbyItems(isVi);
@@ -219,6 +221,7 @@ export const HobbiesZone: React.FC<HobbiesZoneProps> = () => {
               </div>
             ))}
           </div>
+          <SyntaxiaPlayer active={isActive} />
         </div>
       </div>
     </section>

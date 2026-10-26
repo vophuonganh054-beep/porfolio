@@ -283,7 +283,7 @@ function MainAppContent() {
           }
           aria-hidden={activeSection !== 'hobbies'}
         >
-          <HobbiesZone />
+          <HobbiesZone isActive={activeSection === 'hobbies'} />
         </div>
 
         {/* 5. POLAROID DEDICATED SECTION */}
