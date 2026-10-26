@@ -59,7 +59,6 @@ export const HobbiesZone: React.FC<HobbiesZoneProps> = () => {
               <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#120a21] border border-[#1db954] text-[#1db954] font-['Space_Mono'] text-[10px] font-bold">
                 <span className="w-2 h-2 rounded-full bg-[#1db954] animate-ping" />
                 <span className="hidden sm:inline">SPOTIFY</span>
-                <span>SYNCED</span>
               </div>
             </div>
 
