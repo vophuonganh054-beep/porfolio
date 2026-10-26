@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { deliverPigeonEmail } from '../utils/pigeonDelivery';
 import { SOCIAL_LINKS } from '../data/portfolioData';
 import { spawnPixelBurst } from '../utils/fx';
 import { playRetroBeep } from '../utils/audioSynth';
@@ -29,7 +30,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
     setSendError('');
     playRetroBeep('select');
     try {
-      const response = await fetch('/api/contact/pigeon', {
+      const response = await fetch('/api/contact/pigeon-emailjs', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: senderName.trim() || (isVi ? 'Khách ghé thăm MY WORLD' : 'MY WORLD Guest'),
@@ -40,6 +41,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenModal }) =
       if (!response.ok || !result.success) {
         throw new Error(result.error || (isVi ? 'Chưa gửi được thư. Vui lòng thử lại.' : 'Could not send your message. Please try again.'));
       }
+      await deliverPigeonEmail({ name: senderName.trim() || 'MY WORLD Guest', email: senderEmail.trim(), message: senderMessage.trim(), fallbackToken: result.fallbackToken });
       setSentSuccess(true);
       playRetroBeep('coin');
       spawnPixelBurst(window.innerWidth / 2, window.innerHeight / 2, 20);

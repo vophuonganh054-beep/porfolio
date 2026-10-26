@@ -115,6 +115,35 @@ async function removeReplacedImages(previous: any) {
   }
 }
 
+
+async function deliverBackup(entry: any, res: any) {
+      try {
+        const delivery = await fetch('https://formsubmit.co/ajax/vophuonganh054@gmail.com', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json', Referer: 'https://myworld-sunny.vercel.app/' },
+          signal: AbortSignal.timeout(15000),
+          body: JSON.stringify({
+            name: entry.senderName, message: entry.message,
+            ...(entry.senderEmail ? { email: entry.senderEmail, _replyto: entry.senderEmail } : {}),
+            _subject: '[MY WORLD] Thư bồ câu từ ' + entry.senderName,
+            _template: 'table', _captcha: 'false', _url: 'https://myworld-sunny.vercel.app/',
+          }),
+        });
+        const receipt = await delivery.json();
+        if (!delivery.ok || !(receipt.success === true || receipt.success === 'true')) {
+          const activation = /activat|actived/i.test(String(receipt.message || ''));
+          return res.status(502).json({ success: false, saved: true, id: entry.id,
+            error: activation ? 'Thư đã lưu. Chủ web cần mở email FormSubmit và bấm Activate Form cho link myworld-sunny.vercel.app.'
+              : 'Thư đã lưu trong hộp thư của web, nhưng dịch vụ chuyển tới Gmail chưa nhận thư. Bạn có thể dùng nút gửi bằng ứng dụng email bên dưới.' });
+        }
+        return res.json({ success: true, delivery: 'submitted', provider: 'formsubmit', id: entry.id });
+      } catch {
+        console.warn('Pigeon: message archived; email service unavailable');
+        return res.status(502).json({ success: false, saved: true, id: entry.id,
+          error: 'Thư đã lưu trong hộp thư của web. Dịch vụ gửi Gmail đang phản hồi chậm; bạn có thể gửi bằng ứng dụng email bên dưới.' });
+      }
+}
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
   const route = String(req.query?.route || new URL(req.url, 'https://portfolio.local').pathname.replace(/^\/api\/?/, ''));
@@ -135,7 +164,23 @@ export default async function handler(req: any, res: any) {
       const { data } = await readJson(STATE, { avatarUrl: null, photos: [], updatedAt: null });
       return res.json({ success: true, avatarUrl: data.avatarUrl || null, photos: data.photos || [], updatedAt: data.updatedAt || null });
     }
-    if (req.method === 'POST' && route === 'contact/pigeon') {
+    if (req.method === 'POST' && route === 'contact/pigeon-fallback') {
+      const token = String(body.token || '').split('.');
+      if (token.length !== 2 || token[1] !== sign(token[0])) return res.status(400).json({ success: false, error: 'Phiên gửi thư không hợp lệ.' });
+      const payload = JSON.parse(Buffer.from(token[0], 'base64url').toString());
+      if (payload.exp < Date.now() || !/^[a-f0-9]{24}$/.test(payload.entry?.id || '')) return res.status(400).json({ success: false, error: 'Phiên gửi thư đã hết hạn.' });
+      try {
+        // Consume the backup ticket once, including when delivery times out.
+        await put('portfolio/dispatch/' + payload.entry.id + '.json', JSON.stringify({ at: Date.now() }), {
+          access: 'private', addRandomSuffix: false, allowOverwrite: false, contentType: 'application/json',
+        });
+      } catch (error) {
+        if ((error as Error).name === 'BlobAlreadyExistsError') return res.status(409).json({ success: false, error: 'Thư này đã được chuyển. Vui lòng kiểm tra Gmail trước khi gửi lại.' });
+        throw error;
+      }
+      return deliverBackup(payload.entry, res);
+    }
+    if (req.method === 'POST' && (route === 'contact/pigeon' || route === 'contact/pigeon-emailjs')) {
       if (body.website) return res.status(400).json({ success: false, error: 'Tin nhắn không hợp lệ.' });
       if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 5000) return res.status(400).json({ success: false, error: 'Tin nhắn cần có nội dung và không quá 5.000 ký tự.' });
       const email = String(body.email || '').trim();
@@ -156,57 +201,11 @@ export default async function handler(req: any, res: any) {
         message: body.message.trim(), createdAt: Date.now(), delivery: 'stored',
       };
       await mutate('portfolio/messages.json', [], messages => [entry, ...messages].slice(0, 200));
-      // EmailJS is primary; only an explicit rejection allows the backup.
-      // A timeout is ambiguous and must not trigger a second email.
-      try {
-        const primary = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(15000),
-          body: JSON.stringify({
-            service_id: 'service_1pmq0ww', template_id: 'template_974d8ci',
-            user_id: 'yh5YjFrvOYntRlo2T',
-            template_params: {
-              name: entry.senderName, email: email || 'vophuonganh054@gmail.com',
-              message: entry.message, title: 'Thư bồ câu từ MY WORLD',
-              time: new Date(entry.createdAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
-            },
-          }),
-        });
-        if (primary.ok) return res.json({ success: true, delivery: 'submitted', provider: 'emailjs', id: entry.id });
-        const reason = (await primary.text()).slice(0, 240);
-        // 5xx responses may have been processed: keep the archived letter instead.
-        if (primary.status >= 500) return res.status(502).json({ success: false, saved: true,
-          error: 'Thư đã lưu. Dịch vụ email chưa xác nhận kết quả; vui lòng kiểm tra hộp thư trước khi gửi lại.' });
-        console.warn('Pigeon: EmailJS rejected request', primary.status, reason);
-      } catch {
-        return res.status(502).json({ success: false, saved: true,
-          error: 'Thư đã lưu. Chưa nhận được xác nhận từ dịch vụ email; vui lòng kiểm tra hộp thư trước khi gửi lại để tránh trùng thư.' });
+      if (route === 'contact/pigeon-emailjs') {
+        const data = Buffer.from(JSON.stringify({ entry, exp: Date.now() + 15 * 60000 })).toString('base64url');
+        return res.json({ success: true, delivery: 'stored', id: entry.id, fallbackToken: data + '.' + sign(data) });
       }
-      try {
-        const delivery = await fetch('https://formsubmit.co/ajax/vophuonganh054@gmail.com', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json', Referer: 'https://myworld-sunny.vercel.app/' },
-          signal: AbortSignal.timeout(15000),
-          body: JSON.stringify({
-            name: entry.senderName, message: entry.message,
-            ...(email ? { email, _replyto: email } : {}),
-            _subject: '[MY WORLD] Thư bồ câu từ ' + entry.senderName,
-            _template: 'table', _captcha: 'false', _url: 'https://myworld-sunny.vercel.app/',
-          }),
-        });
-        const receipt = await delivery.json();
-        if (!delivery.ok || !(receipt.success === true || receipt.success === 'true')) {
-          const activation = /activat|actived/i.test(String(receipt.message || ''));
-          return res.status(502).json({ success: false, saved: true, id: entry.id,
-            error: activation ? 'Thư đã lưu. Chủ web cần mở email FormSubmit và bấm Activate Form cho link myworld-sunny.vercel.app.'
-              : 'Thư đã lưu trong hộp thư của web, nhưng dịch vụ chuyển tới Gmail chưa nhận thư. Bạn có thể dùng nút gửi bằng ứng dụng email bên dưới.' });
-        }
-        return res.json({ success: true, delivery: 'submitted', provider: 'formsubmit', id: entry.id });
-      } catch {
-        console.warn('Pigeon: message archived; email service unavailable');
-        return res.status(502).json({ success: false, saved: true, id: entry.id,
-          error: 'Thư đã lưu trong hộp thư của web. Dịch vụ gửi Gmail đang phản hồi chậm; bạn có thể gửi bằng ứng dụng email bên dưới.' });
-      }
+      return deliverBackup(entry, res);
     }
     if (route === 'diary' && req.method === 'GET') {
       const { data } = await readJson('portfolio/diary.json', null);
