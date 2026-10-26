@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { VisitorJourney, HiddenStar, useVisitorJourney } from './components/VisitorJourney';
+import { DuckGame } from './components/DuckGame';
 import { Footer } from './components/Footer';
 import { HeroSection } from './components/HeroSection';
 import { HobbiesZone } from './components/HobbiesZone';
@@ -122,6 +123,8 @@ function MainAppContent() {
               onOpenContact={handleOpenContact}
               onNavigateSection={handleSelectSection}
             />
+
+            <DuckGame />
 
             {/* Streamlined Activity Hub / Module Cards Preview */}
             <div className="bg-[#191127]/90 border-[3px] border-[#5a3696] p-4 sm:p-6 pixel-box">
