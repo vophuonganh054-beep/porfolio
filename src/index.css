@@ -5,11 +5,14 @@
     background-color: #0b0717;
     color: #eaddff;
     font-family: 'Space Mono', monospace;
-    cursor: url('/kirby-cursor.svg') 12 4, auto !important;
   }
 
-  button, a, input, select, textarea, [role="button"], .cursor-pointer, .pixel-btn-action, .pixel-slot, .dpad-btn {
-    cursor: url('/kirby-cursor.svg') 12 4, auto !important;
+  html, body, body * {
+    cursor: url('/kirby-arrow.svg') 4 4, auto !important;
+  }
+
+  button, a, select, [role="button"], .cursor-pointer, .pixel-btn-action, .pixel-slot, .dpad-btn {
+    cursor: url('/kirby-hand.svg') 27 6, pointer !important;
   }
 }
 
