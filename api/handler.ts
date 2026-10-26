@@ -1,4 +1,4 @@
-import { get, put, del, BlobPreconditionFailedError } from '@vercel/blob';
+import { get, head, put, del, BlobPreconditionFailedError } from '@vercel/blob';
 import { createHmac, timingSafeEqual, pbkdf2Sync, randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
@@ -14,7 +14,14 @@ async function readJson(path: string, fallback: any) {
 
 async function mutate(path: string, fallback: any, change: (state: any) => any) {
   for (let retry = 0; retry < 3; retry++) {
-    const { data, etag } = await readJson(path, fallback);
+    // The metadata API supplies the storage ETag used by conditional writes.
+    // A download response can carry a delivery-layer ETag instead.
+    const metadata = await head(path).catch(error => {
+      if ((error as Error).name === 'BlobNotFoundError') return null;
+      throw error;
+    });
+    const { data } = await readJson(path, fallback);
+    const etag = metadata?.etag;
     const next = change(data);
     try {
       await put(path, JSON.stringify(next), {
