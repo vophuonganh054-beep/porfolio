@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { VisitorJourney, HiddenStar, useVisitorJourney } from './components/VisitorJourney';
 import { DuckGame } from './components/DuckGame';
+import { FloatingChibi } from './components/FloatingChibi';
 import { InstallApp } from './components/InstallApp';
 import { Footer } from './components/Footer';
 import { HeroSection } from './components/HeroSection';
@@ -310,6 +311,8 @@ function MainAppContent() {
       {/* Admin Login & Password Modals */}
       <AdminModals />
 
+      <FloatingChibi />
+
       {/* Arcade Footer */}
       <Footer
         onOpenContact={handleOpenContact}
@@ -328,3 +331,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+
