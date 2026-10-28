@@ -11,6 +11,8 @@ const ACTIONS = [
 ] as const;
 const SIZE = 128;
 const HELD_SIZE = 176;
+// The fall GIF has more transparent padding than the held GIF.
+const RECOVERY_SIZE = 228;
 const RECOVERY_MS = 4620;
 const clamp = (value: number, max: number) => Math.max(0, Math.min(value, Math.max(0, max)));
 const randomAction = (previous: string) => {
@@ -28,7 +30,7 @@ export function FloatingChibi() {
   const hoverTimer = useRef<number | undefined>(undefined);
   const state = useRef({ x: 24, y: 200, tx: 24, ty: 200, elapsed: 0, walking: true, hover: false, menu: false, dragging: false, recovering: false, recoveryLoaded: false, recoveryElapsed: 0, reduced: false, direction: 1 });
   const pointer = useRef<{ id: number; x: number; y: number; originX: number; originY: number; moved: boolean } | null>(null);
-  const displaySize = activity === 'lifted' || activity === 'recover' ? HELD_SIZE : SIZE;
+  const displaySize = activity === 'recover' ? RECOVERY_SIZE : activity === 'lifted' ? HELD_SIZE : SIZE;
   const clearHover = () => window.clearTimeout(hoverTimer.current);
   const paint = () => {
     const s = state.current;
@@ -40,7 +42,7 @@ export function FloatingChibi() {
   };
   const bounds = () => {
     const s = state.current;
-    const size = s.dragging || s.recovering ? HELD_SIZE : SIZE;
+    const size = s.recovering ? RECOVERY_SIZE : s.dragging ? HELD_SIZE : SIZE;
     s.x = clamp(s.x, window.innerWidth - size);
     s.y = clamp(s.y, window.innerHeight - size);
     s.tx = clamp(s.tx, window.innerWidth - SIZE);
@@ -126,6 +128,7 @@ export function FloatingChibi() {
       state.current.elapsed = 0; state.current.walking = false;
       if (event.type === 'pointerup') {
         state.current.recovering = true; state.current.recoveryLoaded = false; state.current.recoveryElapsed = 0;
+        bounds(); paint();
         clearHover(); setDropSequence(value => value + 1); setActivity('recover');
       } else { state.current.recovering = false; setActivity('happy'); }
     }
