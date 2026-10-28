@@ -10,6 +10,7 @@ const ACTIONS = [
   ['drinking', 'Uống nước', 'Drink'], ['eating', 'Ăn uống', 'Eat'],
 ] as const;
 const SIZE = 128;
+const RECOVERY_MS = 4620;
 const clamp = (value: number, max: number) => Math.max(0, Math.min(value, Math.max(0, max)));
 const randomAction = (previous: string) => {
   const choices = ACTIONS.filter(([id]) => id !== previous);
@@ -19,11 +20,12 @@ const randomAction = (previous: string) => {
 export function FloatingChibi() {
   const { isVi } = useLanguage();
   const [activity, setActivity] = useState('walking');
+  const [dropSequence, setDropSequence] = useState(0);
   const [menu, setMenu] = useState(false);
   const [panel, setPanel] = useState({ left: 8, top: 8 });
   const sprite = useRef<HTMLButtonElement>(null);
   const hoverTimer = useRef<number | undefined>(undefined);
-  const state = useRef({ x: 24, y: 200, tx: 24, ty: 200, elapsed: 0, walking: true, hover: false, menu: false, dragging: false, reduced: false, direction: 1 });
+  const state = useRef({ x: 24, y: 200, tx: 24, ty: 200, elapsed: 0, walking: true, hover: false, menu: false, dragging: false, recovering: false, recoveryLoaded: false, recoveryElapsed: 0, reduced: false, direction: 1 });
   const pointer = useRef<{ id: number; x: number; y: number; originX: number; originY: number; moved: boolean } | null>(null);
   const clearHover = () => window.clearTimeout(hoverTimer.current);
   const paint = () => {
@@ -50,7 +52,7 @@ export function FloatingChibi() {
   };
   const openMenu = () => {
     clearHover();
-    if (state.current.dragging) return;
+    if (state.current.dragging || state.current.recovering) return;
     state.current.menu = true;
     setMenu(true);
     const s = state.current;
@@ -74,7 +76,15 @@ export function FloatingChibi() {
     let frame = 0; let last = performance.now();
     const tick = (now: number) => {
       const dt = Math.min(now - last, 80); last = now;
-      if (!document.hidden && !s.hover && !s.menu && !pointer.current) {
+      if (!document.hidden && s.recovering && !pointer.current) {
+        if (s.recoveryLoaded) s.recoveryElapsed += dt;
+        if (s.recoveryElapsed >= RECOVERY_MS) {
+          s.recovering = false; s.recoveryLoaded = false; s.elapsed = 0; s.hover = false;
+          s.walking = !s.reduced;
+          if (s.walking) target();
+          setActivity(s.walking ? 'walking' : 'happy');
+        }
+      } else if (!document.hidden && !s.hover && !s.menu && !pointer.current) {
         s.elapsed += dt;
         if (s.walking && !s.reduced) {
           const dx = s.tx - s.x; const dy = s.ty - s.y;
@@ -98,7 +108,7 @@ export function FloatingChibi() {
     };
     const resize = () => { cancelDrag(); bounds(); paint(); closeMenu(); };
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { closeMenu(); sprite.current?.focus(); } };
-    const reduce = () => { s.reduced = preference.matches; if (s.reduced) { s.walking = false; s.elapsed = 0; setActivity('happy'); } };
+    const reduce = () => { s.reduced = preference.matches; if (s.reduced) { s.recovering = false; s.recoveryLoaded = false; s.walking = false; s.elapsed = 0; setActivity('happy'); } };
     window.addEventListener('blur', cancelDrag); window.addEventListener('resize', resize); window.addEventListener('keydown', escape); preference.addEventListener('change', reduce);
     return () => { cancelAnimationFrame(frame); clearHover(); window.removeEventListener('blur', cancelDrag); window.removeEventListener('resize', resize); window.removeEventListener('keydown', escape); preference.removeEventListener('change', reduce); };
   }, []);
@@ -109,11 +119,17 @@ export function FloatingChibi() {
     pointer.current = null;
     state.current.dragging = false;
     state.current.hover = false;
-    if (p.moved) { state.current.elapsed = 0; state.current.walking = false; setActivity('happy'); }
+    if (p.moved) {
+      state.current.elapsed = 0; state.current.walking = false;
+      if (event.type === 'pointerup') {
+        state.current.recovering = true; state.current.recoveryLoaded = false; state.current.recoveryElapsed = 0;
+        clearHover(); setDropSequence(value => value + 1); setActivity('recover');
+      } else { state.current.recovering = false; setActivity('happy'); }
+    }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     // A tap also opens the picker on touch screens.
     if (!p.moved && event.type === 'pointerup') openMenu();
-    else if (p.moved && event.type === 'pointerup' && event.pointerType === 'mouse') {
+    else if (p.moved && !state.current.recovering && event.type === 'pointerup' && event.pointerType === 'mouse') {
       state.current.hover = true;
       hoverTimer.current = window.setTimeout(openMenu, 2000);
     }
@@ -134,11 +150,13 @@ export function FloatingChibi() {
       onPointerMove={event => {
         const p = pointer.current; if (!p || p.id !== event.pointerId) return;
         const dx = event.clientX - p.x; const dy = event.clientY - p.y;
-        if (!p.moved && Math.hypot(dx, dy) > 4) { p.moved = true; state.current.dragging = true; state.current.walking = false; setActivity('lifted'); }
+        if (!p.moved && Math.hypot(dx, dy) > 4) { p.moved = true; state.current.dragging = true; state.current.walking = false; state.current.recovering = false; state.current.recoveryLoaded = false; setActivity('lifted'); }
         if (p.moved) { state.current.x = p.originX + dx; state.current.y = p.originY + dy; bounds(); paint(); }
       }} onPointerUp={release} onPointerCancel={release}
       onLostPointerCapture={event => { if (pointer.current?.id === event.pointerId) release(event); }}>
-      <img src={`/companion/${activity}.gif`} alt="" width={SIZE} height={SIZE} draggable={false} style={{ width: SIZE, height: SIZE, imageRendering: 'pixelated', pointerEvents: 'none', transform: activity === 'walking' && state.current.direction < 0 ? 'scaleX(-1)' : undefined }} />
+      <img key={activity === 'recover' ? 'recover-' + dropSequence : activity} src={activity === 'recover' ? `/companion/recover.gif?play=${dropSequence}` : `/companion/${activity}.gif`}
+        onLoad={() => { if (activity === 'recover' && state.current.recovering) state.current.recoveryLoaded = true; }}
+        onError={() => { if (activity === 'recover') { state.current.recovering = false; state.current.elapsed = 0; setActivity('happy'); } }} alt="" width={SIZE} height={SIZE} draggable={false} style={{ width: SIZE, height: SIZE, imageRendering: 'pixelated', pointerEvents: 'none', transform: activity === 'walking' && state.current.direction < 0 ? 'scaleX(-1)' : undefined }} />
     </button>
     {menu && <section id="chibi-activities" aria-label={isVi ? 'Biểu cảm và hoạt động' : 'Expressions and activities'} style={{ position: 'fixed', left: panel.left, top: panel.top, width: 'min(268px, calc(100vw - 16px))', maxHeight: 'min(290px, calc(100dvh - 16px))', overflowY: 'auto', zIndex: 46 }} className="border-2 border-[#f6c833] bg-[#191127] p-3 text-[#eaddff] shadow-lg font-mono"
       onPointerEnter={() => { state.current.hover = true; }} onPointerLeave={() => { state.current.hover = false; }}>
