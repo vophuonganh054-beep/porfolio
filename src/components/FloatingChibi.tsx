@@ -14,6 +14,9 @@ const HELD_SIZE = 176;
 // The fall GIF has more transparent padding than the held GIF.
 const RECOVERY_SIZE = 228;
 const RECOVERY_MS = 4620;
+// Visible foot positions, measured in the 128px source frames.
+const RECOVERY_FOOT = { x: 64, y: 117 };
+const HAPPY_FOOT = { x: 69, y: 95 };
 const clamp = (value: number, max: number) => Math.max(0, Math.min(value, Math.max(0, max)));
 const randomAction = (previous: string) => {
   const choices = ACTIONS.filter(([id]) => id !== previous);
@@ -84,10 +87,13 @@ export function FloatingChibi() {
       if (!document.hidden && s.recovering && !pointer.current) {
         if (s.recoveryLoaded) s.recoveryElapsed += dt;
         if (s.recoveryElapsed >= RECOVERY_MS) {
+          // Keep the visible feet at the landing spot when the canvas shrinks.
+          s.x += RECOVERY_FOOT.x * RECOVERY_SIZE / SIZE - HAPPY_FOOT.x;
+          s.y += RECOVERY_FOOT.y * RECOVERY_SIZE / SIZE - HAPPY_FOOT.y;
           s.recovering = false; s.recoveryLoaded = false; s.elapsed = 0; s.hover = false;
-          s.walking = !s.reduced;
-          if (s.walking) target();
-          setActivity(s.walking ? 'walking' : 'happy');
+          s.walking = false;
+          paint();
+          setActivity('happy');
         }
       } else if (!document.hidden && !s.hover && !s.menu && !pointer.current) {
         s.elapsed += dt;
