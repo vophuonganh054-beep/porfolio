@@ -31,7 +31,7 @@ export function FloatingChibi() {
   const [panel, setPanel] = useState({ left: 8, top: 8 });
   const sprite = useRef<HTMLButtonElement>(null);
   const hoverTimer = useRef<number | undefined>(undefined);
-  const state = useRef({ x: 24, y: 200, tx: 24, ty: 200, elapsed: 0, walking: true, hover: false, menu: false, dragging: false, recovering: false, recoveryLoaded: false, recoveryElapsed: 0, recoveryStartedAt: 0, reduced: false, direction: 1 });
+  const state = useRef({ x: 24, y: 200, tx: 24, ty: 200, elapsed: 0, walking: true, hover: false, menu: false, dragging: false, recovering: false, recoveryLoaded: false, recoveryElapsed: 0, recoveryStartedAt: -1, reduced: false, direction: 1 });
   const pointer = useRef<{ id: number; x: number; y: number; originX: number; originY: number; moved: boolean } | null>(null);
   const displaySize = activity === 'recover' ? RECOVERY_SIZE : activity === 'lifted' ? HELD_SIZE : SIZE;
   const clearHover = () => window.clearTimeout(hoverTimer.current);
@@ -89,7 +89,7 @@ export function FloatingChibi() {
         // Cached GIFs can finish loading before React observes the load event.
         if (recoveryImage?.complete && recoveryImage.naturalWidth > 0 && recoveryImage.getAttribute('src')?.includes('/recover.gif')) s.recoveryLoaded = true;
         if (s.recoveryLoaded) {
-          if (!s.recoveryStartedAt) s.recoveryStartedAt = now;
+          if (s.recoveryStartedAt < 0) s.recoveryStartedAt = now;
           s.recoveryElapsed = now - s.recoveryStartedAt;
         }
         if (s.recoveryElapsed >= RECOVERY_MS) {
@@ -139,7 +139,7 @@ export function FloatingChibi() {
     if (p.moved) {
       state.current.elapsed = 0; state.current.walking = false;
       if (event.type === 'pointerup') {
-        state.current.recovering = true; state.current.recoveryLoaded = false; state.current.recoveryElapsed = 0; state.current.recoveryStartedAt = 0;
+        state.current.recovering = true; state.current.recoveryLoaded = false; state.current.recoveryElapsed = 0; state.current.recoveryStartedAt = -1;
         bounds(); paint();
         clearHover(); setDropSequence(value => value + 1); setActivity('recover');
       } else { state.current.recovering = false; setActivity('happy'); }
