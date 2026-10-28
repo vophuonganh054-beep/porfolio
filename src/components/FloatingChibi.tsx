@@ -10,6 +10,7 @@ const ACTIONS = [
   ['drinking', 'Uống nước', 'Drink'], ['eating', 'Ăn uống', 'Eat'],
 ] as const;
 const SIZE = 128;
+const HELD_SIZE = 176;
 const RECOVERY_MS = 4620;
 const clamp = (value: number, max: number) => Math.max(0, Math.min(value, Math.max(0, max)));
 const randomAction = (previous: string) => {
@@ -27,6 +28,7 @@ export function FloatingChibi() {
   const hoverTimer = useRef<number | undefined>(undefined);
   const state = useRef({ x: 24, y: 200, tx: 24, ty: 200, elapsed: 0, walking: true, hover: false, menu: false, dragging: false, recovering: false, recoveryLoaded: false, recoveryElapsed: 0, reduced: false, direction: 1 });
   const pointer = useRef<{ id: number; x: number; y: number; originX: number; originY: number; moved: boolean } | null>(null);
+  const displaySize = activity === 'lifted' || activity === 'recover' ? HELD_SIZE : SIZE;
   const clearHover = () => window.clearTimeout(hoverTimer.current);
   const paint = () => {
     const s = state.current;
@@ -38,8 +40,9 @@ export function FloatingChibi() {
   };
   const bounds = () => {
     const s = state.current;
-    s.x = clamp(s.x, window.innerWidth - SIZE);
-    s.y = clamp(s.y, window.innerHeight - SIZE);
+    const size = s.dragging || s.recovering ? HELD_SIZE : SIZE;
+    s.x = clamp(s.x, window.innerWidth - size);
+    s.y = clamp(s.y, window.innerHeight - size);
     s.tx = clamp(s.tx, window.innerWidth - SIZE);
     s.ty = clamp(s.ty, window.innerHeight - SIZE);
   };
@@ -137,7 +140,7 @@ export function FloatingChibi() {
 
   return createPortal(<>
     <button ref={sprite} type="button" aria-label={isVi ? 'Chibi: kéo để di chuyển, rê chuột 2 giây hoặc nhấn để chọn hoạt động' : 'Chibi: drag to move, hover for 2 seconds or press to choose an activity'} aria-expanded={menu} aria-controls="chibi-activities"
-      style={{ position: 'fixed', left: 0, top: 0, width: SIZE, height: SIZE, zIndex: 45, touchAction: 'none', padding: 0, border: 0, background: 'transparent', cursor: 'grab', userSelect: 'none' }}
+      style={{ position: 'fixed', left: 0, top: 0, width: displaySize, height: displaySize, zIndex: 45, touchAction: 'none', padding: 0, border: 0, background: 'transparent', cursor: 'grab', userSelect: 'none' }}
       onPointerEnter={event => { if (event.pointerType === 'mouse') { state.current.hover = true; clearHover(); hoverTimer.current = window.setTimeout(openMenu, 2000); } }}
       onPointerLeave={() => { state.current.hover = false; clearHover(); }}
       onClick={event => { if (event.detail === 0) openMenu(); }}
@@ -156,7 +159,7 @@ export function FloatingChibi() {
       onLostPointerCapture={event => { if (pointer.current?.id === event.pointerId) release(event); }}>
       <img key={activity === 'recover' ? 'recover-' + dropSequence : activity} src={activity === 'recover' ? `/companion/recover.gif?play=${dropSequence}` : `/companion/${activity}.gif`}
         onLoad={() => { if (activity === 'recover' && state.current.recovering) state.current.recoveryLoaded = true; }}
-        onError={() => { if (activity === 'recover') { state.current.recovering = false; state.current.elapsed = 0; setActivity('happy'); } }} alt="" width={SIZE} height={SIZE} draggable={false} style={{ width: SIZE, height: SIZE, imageRendering: 'pixelated', pointerEvents: 'none', transform: activity === 'walking' && state.current.direction < 0 ? 'scaleX(-1)' : undefined }} />
+        onError={() => { if (activity === 'recover') { state.current.recovering = false; state.current.elapsed = 0; setActivity('happy'); } }} alt="" width={displaySize} height={displaySize} draggable={false} style={{ width: displaySize, height: displaySize, imageRendering: 'pixelated', pointerEvents: 'none', transform: activity === 'walking' && state.current.direction < 0 ? 'scaleX(-1)' : undefined }} />
     </button>
     {menu && <section id="chibi-activities" aria-label={isVi ? 'Biểu cảm và hoạt động' : 'Expressions and activities'} style={{ position: 'fixed', left: panel.left, top: panel.top, width: 'min(268px, calc(100vw - 16px))', maxHeight: 'min(290px, calc(100dvh - 16px))', overflowY: 'auto', zIndex: 46 }} className="border-2 border-[#f6c833] bg-[#191127] p-3 text-[#eaddff] shadow-lg font-mono"
       onPointerEnter={() => { state.current.hover = true; }} onPointerLeave={() => { state.current.hover = false; }}>
