@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { VisitorJourney, HiddenStar, useVisitorJourney } from './components/VisitorJourney';
-import { DuckGame } from './components/DuckGame';
+import { BlockBlastGame } from './components/BlockBlastGame';
 import { FloatingChibi } from './components/FloatingChibi';
 import { InstallApp } from './components/InstallApp';
 import { Footer } from './components/Footer';
@@ -128,7 +128,7 @@ function MainAppContent() {
               onNavigateSection={handleSelectSection}
             />
 
-            <DuckGame />
+            <BlockBlastGame />
 
             {/* Streamlined Activity Hub / Module Cards Preview */}
             <div className="desktop-hub bg-[#191127]/90 border-[3px] border-[#5a3696] p-4 sm:p-6 pixel-box">
@@ -332,5 +332,6 @@ export default function App() {
     </AuthProvider>
   );
 }
+
 
 
