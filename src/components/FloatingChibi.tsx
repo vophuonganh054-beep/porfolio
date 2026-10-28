@@ -85,6 +85,9 @@ export function FloatingChibi() {
     const tick = (now: number) => {
       const dt = Math.min(now - last, 80); last = now;
       if (!document.hidden && s.recovering && !pointer.current) {
+        const recoveryImage = sprite.current?.querySelector('img');
+        // Cached GIFs can finish loading before React observes the load event.
+        if (recoveryImage?.complete && recoveryImage.naturalWidth > 0 && recoveryImage.getAttribute('src')?.includes('/recover.gif')) s.recoveryLoaded = true;
         if (s.recoveryLoaded) s.recoveryElapsed += dt;
         if (s.recoveryElapsed >= RECOVERY_MS) {
           // Keep the visible feet at the landing spot when the canvas shrinks.
